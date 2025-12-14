@@ -20,32 +20,34 @@ export async function POST(request: NextRequest) {
 
     if (query) {
       // On-demand search for specific topic
-      userPrompt = `Find recent conversations and trends about: "${query}"
+      userPrompt = `Search X and the web for recent conversations about: "${query}"
 
 Provide:
 1. Current volume/mentions if available
-2. Top voices discussing this
+2. Top voices discussing this (with @handles)
 3. Main perspectives in the conversation
 4. What's MISSING that the user could uniquely add
 5. Any viral posts or heated debates
-6. Suggested entry points`;
+6. Suggested entry points
+
+Be specific with real data from your search.`;
     } else {
       // Daily cultural brief
-      userPrompt = `Generate today's cultural intelligence brief.
+      userPrompt = `Search X right now for today's cultural intelligence brief.
 
-Focus on:
+Focus on finding:
 1. TOP 5 TRENDING TOPICS relevant to AI, content creation, ambitious women, work-life balance, building in public
-2. TOP 3 TRENDING PEOPLE posting about these topics
+2. TOP 3 TRENDING PEOPLE posting about these topics (include @handles)
 3. 1-2 ACTIVE DEBATES worth joining
 4. Any HIGH URGENCY opportunities (post today)
 
 ${diaryContext ? `\nUser's recent diary themes to match against:\n${diaryContext}` : ''}
 
-Be concise but specific. Include actual engagement numbers where possible.
+Use real data from your X search. Include actual engagement numbers where possible.
 Format as a conversational brief - like you're a smart cultural strategist giving a morning update.`;
     }
 
-    // Call xAI Grok API
+    // Call xAI Grok API with Live Search enabled
     const response = await fetch('https://api.x.ai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -53,13 +55,24 @@ Format as a conversational brief - like you're a smart cultural strategist givin
         'Authorization': `Bearer ${grokApiKey}`,
       },
       body: JSON.stringify({
-        model: 'grok-3',
+        model: 'grok-4-1-fast',
         messages: [
           { role: 'system', content: GROK_SYSTEM_PROMPT },
           { role: 'user', content: userPrompt }
         ],
         temperature: 0.7,
         max_tokens: 2000,
+        // Enable Live Search on X and news
+        search_parameters: {
+          mode: 'on',
+          sources: [
+            { type: 'x', post_favorite_count: 100 }, // Only posts with 100+ likes
+            { type: 'news' },
+            { type: 'web' }
+          ],
+          max_search_results: 20,
+          return_citations: true
+        }
       }),
     });
 
@@ -74,12 +87,14 @@ Format as a conversational brief - like you're a smart cultural strategist givin
 
     const data = await response.json();
     const briefContent = data.choices?.[0]?.message?.content || 'No response from Grok';
+    const citations = data.choices?.[0]?.message?.citations || [];
 
     // Parse the response to extract structured data for bento boxes
     const structured = parseGrokResponse(briefContent);
 
     return NextResponse.json({
       brief: briefContent,
+      citations,
       ...structured,
       timestamp: new Date().toISOString(),
     });
