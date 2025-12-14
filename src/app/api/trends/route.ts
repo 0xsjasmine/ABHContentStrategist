@@ -68,14 +68,16 @@ Format as a conversational brief - like you're a smart cultural strategist givin
             type: 'function',
             function: {
               name: 'x_search',
-              description: 'Search X posts and threads'
+              description: 'Search X posts and threads',
+              parameters: { type: 'object', properties: {} }
             }
           },
           {
             type: 'function',
             function: {
               name: 'web_search',
-              description: 'Search the web'
+              description: 'Search the web',
+              parameters: { type: 'object', properties: {} }
             }
           }
         ]
