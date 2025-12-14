@@ -1,370 +1,253 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Link as LinkIcon, Trash2, Filter, User } from 'lucide-react';
-import { Button, Card, Badge, TagInput, Modal } from '@/components/ui';
-import { TextArea, Input } from '@/components/ui/Input';
+import { Plus, ExternalLink, Trash2, X } from 'lucide-react';
 import {
   getAllSavedPosts,
   createSavedPost,
   deleteSavedPost,
 } from '@/lib/db';
 import type { SavedPost } from '@/types';
-import { FORMAT_TAG_PRESETS, VIBE_TAG_PRESETS } from '@/types';
+
+const FORMAT_OPTIONS = ['thread', 'single', 'story', 'hot-take', 'listicle'];
+const VIBE_OPTIONS = ['sharp', 'warm', 'vulnerable', 'witty', 'bold'];
 
 export default function CreatorTab() {
   const [posts, setPosts] = useState<SavedPost[]>([]);
-  const [selectedPost, setSelectedPost] = useState<SavedPost | null>(null);
-  const [isAddingNew, setIsAddingNew] = useState(false);
-  const [filterFormat, setFilterFormat] = useState<string>('');
-  const [filterVibe, setFilterVibe] = useState<string>('');
+  const [isAdding, setIsAdding] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  // Form state
-  const [newText, setNewText] = useState('');
-  const [newUrl, setNewUrl] = useState('');
-  const [newAuthor, setNewAuthor] = useState('');
-  const [newTopicTags, setNewTopicTags] = useState<string[]>([]);
-  const [newFormatTags, setNewFormatTags] = useState<string[]>([]);
-  const [newVibeTags, setNewVibeTags] = useState<string[]>([]);
-  const [newHighlights, setNewHighlights] = useState<string[]>([]);
-  const [newNotes, setNewNotes] = useState('');
+  // Form
+  const [text, setText] = useState('');
+  const [author, setAuthor] = useState('');
+  const [url, setUrl] = useState('');
+  const [format, setFormat] = useState('');
+  const [vibe, setVibe] = useState('');
+  const [notes, setNotes] = useState('');
 
   useEffect(() => {
     loadPosts();
   }, []);
 
   const loadPosts = async () => {
-    const allPosts = await getAllSavedPosts();
-    setPosts(allPosts);
+    const all = await getAllSavedPosts();
+    setPosts(all);
   };
 
   const handleSave = async () => {
-    if (!newText.trim() || !newAuthor.trim()) return;
+    if (!text.trim() || !author.trim()) return;
 
     await createSavedPost({
-      text: newText,
-      url: newUrl || undefined,
-      author: newAuthor.startsWith('@') ? newAuthor : `@${newAuthor}`,
+      text,
+      url: url || undefined,
+      author: author.startsWith('@') ? author : `@${author}`,
       savedDate: new Date().toISOString(),
       tags: {
-        topic: newTopicTags,
-        creator: [newAuthor.startsWith('@') ? newAuthor : `@${newAuthor}`],
-        format: newFormatTags,
-        vibe: newVibeTags,
+        topic: [],
+        creator: [author.startsWith('@') ? author : `@${author}`],
+        format: format ? [format] : [],
+        vibe: vibe ? [vibe] : [],
       },
-      highlights: newHighlights,
-      notes: newNotes,
+      highlights: [],
+      notes,
     });
 
-    // Reset form
-    setNewText('');
-    setNewUrl('');
-    setNewAuthor('');
-    setNewTopicTags([]);
-    setNewFormatTags([]);
-    setNewVibeTags([]);
-    setNewHighlights([]);
-    setNewNotes('');
-    setIsAddingNew(false);
-
+    resetForm();
     await loadPosts();
+  };
+
+  const resetForm = () => {
+    setText('');
+    setAuthor('');
+    setUrl('');
+    setFormat('');
+    setVibe('');
+    setNotes('');
+    setIsAdding(false);
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this saved post?')) return;
     await deleteSavedPost(id);
-    if (selectedPost?.id === id) setSelectedPost(null);
     await loadPosts();
   };
 
-  const filteredPosts = posts.filter((post) => {
-    if (filterFormat && !post.tags.format.includes(filterFormat)) return false;
-    if (filterVibe && !post.tags.vibe.includes(filterVibe)) return false;
-    return true;
-  });
-
-  const uniqueFormats = [...new Set(posts.flatMap((p) => p.tags.format))];
-  const uniqueVibes = [...new Set(posts.flatMap((p) => p.tags.vibe))];
-
   return (
-    <div className="space-y-6">
+    <div className="relative min-h-[80vh]">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold text-neutral-900">
-            Creator Inspiration
-          </h2>
-          <p className="text-sm text-neutral-500 mt-1">
-            Save posts that resonate + build your format library
-          </p>
-        </div>
-        <Button onClick={() => setIsAddingNew(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Save Post
-        </Button>
+      <div className="mb-8">
+        <h1 className="text-2xl font-light text-[#2D2A26] mb-1">Inspiration</h1>
+        <p className="text-sm text-[#9C958E] font-light">Posts that resonate</p>
       </div>
 
-      {/* Filters */}
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-neutral-500" />
-          <select
-            value={filterFormat}
-            onChange={(e) => setFilterFormat(e.target.value)}
-            className="text-sm border border-neutral-300 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-neutral-500"
-          >
-            <option value="">All formats</option>
-            {uniqueFormats.map((format) => (
-              <option key={format} value={format}>
-                {format}
-              </option>
-            ))}
-          </select>
-          <select
-            value={filterVibe}
-            onChange={(e) => setFilterVibe(e.target.value)}
-            className="text-sm border border-neutral-300 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-neutral-500"
-          >
-            <option value="">All vibes</option>
-            {uniqueVibes.map((vibe) => (
-              <option key={vibe} value={vibe}>
-                {vibe}
-              </option>
-            ))}
-          </select>
-        </div>
-        <span className="text-sm text-neutral-500">
-          {filteredPosts.length} posts
-        </span>
-      </div>
+      {/* Add Form */}
+      {isAdding && (
+        <div className="glass rounded-3xl p-6 mb-8 animate-slide-up">
+          <div className="flex justify-between items-start mb-4">
+            <h2 className="text-lg font-light text-[#2D2A26]">Save a post</h2>
+            <button onClick={resetForm} className="p-1 hover:bg-white/50 rounded-full">
+              <X className="w-4 h-4 text-[#9C958E]" />
+            </button>
+          </div>
 
-      {/* Posts Grid */}
-      {filteredPosts.length === 0 ? (
-        <Card className="text-center py-12">
-          <p className="text-neutral-500">No saved posts yet</p>
-          <p className="text-sm text-neutral-400 mt-1">
-            Save posts from X that inspire you
-          </p>
-          <Button className="mt-4" onClick={() => setIsAddingNew(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Save Your First Post
-          </Button>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredPosts.map((post) => (
-            <Card
-              key={post.id}
-              hover
-              className="cursor-pointer"
-              onClick={() => setSelectedPost(post)}
-            >
-              {/* Author */}
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 bg-neutral-200 rounded-full flex items-center justify-center">
-                  <User className="w-4 h-4 text-neutral-500" />
-                </div>
-                <span className="font-medium text-neutral-900">{post.author}</span>
-              </div>
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Paste the post..."
+            className="w-full bg-transparent text-[#2D2A26] placeholder:text-[#9C958E] font-light resize-none focus:outline-none min-h-[120px] mb-4"
+          />
 
-              {/* Text Preview */}
-              <p className="text-sm text-neutral-700 line-clamp-4 mb-3">
-                {post.text}
-              </p>
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <input
+              type="text"
+              value={author}
+              onChange={(e) => setAuthor(e.target.value)}
+              placeholder="@creator"
+              className="px-4 py-2.5 glass-subtle rounded-2xl text-sm font-light focus:outline-none"
+            />
+            <input
+              type="text"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="Link (optional)"
+              className="px-4 py-2.5 glass-subtle rounded-2xl text-sm font-light focus:outline-none"
+            />
+          </div>
 
-              {/* Tags */}
-              <div className="flex flex-wrap gap-1 mb-3">
-                {post.tags.format.map((tag) => (
-                  <Badge key={tag} size="sm" variant="primary">
-                    {tag}
-                  </Badge>
-                ))}
-                {post.tags.vibe.map((tag) => (
-                  <Badge key={tag} size="sm" variant="outline">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-
-              {/* URL & Actions */}
-              <div className="flex items-center justify-between pt-2 border-t border-neutral-100">
-                {post.url ? (
-                  <a
-                    href={post.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="text-xs text-neutral-500 hover:text-neutral-700 flex items-center gap-1"
-                  >
-                    <LinkIcon className="w-3 h-3" />
-                    View on X
-                  </a>
-                ) : (
-                  <span />
-                )}
+          {/* Format & Vibe */}
+          <div className="mb-4">
+            <p className="text-xs text-[#9C958E] mb-2 font-light">Format</p>
+            <div className="flex flex-wrap gap-2">
+              {FORMAT_OPTIONS.map((f) => (
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete(post.id);
-                  }}
-                  className="p-1 text-neutral-400 hover:text-red-600 transition-colors"
+                  key={f}
+                  onClick={() => setFormat(format === f ? '' : f)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-light transition-all ${
+                    format === f
+                      ? 'bg-[#C4A484] text-white'
+                      : 'glass-subtle text-[#6B6560] hover:text-[#2D2A26]'
+                  }`}
                 >
-                  <Trash2 className="w-4 h-4" />
+                  {f}
                 </button>
-              </div>
-            </Card>
-          ))}
+              ))}
+            </div>
+          </div>
+
+          <div className="mb-4">
+            <p className="text-xs text-[#9C958E] mb-2 font-light">Vibe</p>
+            <div className="flex flex-wrap gap-2">
+              {VIBE_OPTIONS.map((v) => (
+                <button
+                  key={v}
+                  onClick={() => setVibe(vibe === v ? '' : v)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-light transition-all ${
+                    vibe === v
+                      ? 'bg-[#B8C4B8] text-white'
+                      : 'glass-subtle text-[#6B6560] hover:text-[#2D2A26]'
+                  }`}
+                >
+                  {v}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Why does this resonate? (optional)"
+            className="w-full bg-transparent text-[#2D2A26] placeholder:text-[#9C958E] text-sm font-light resize-none focus:outline-none h-16 mb-4"
+          />
+
+          <div className="flex justify-end">
+            <button
+              onClick={handleSave}
+              disabled={!text.trim() || !author.trim()}
+              className="px-6 py-2 bg-gradient-to-r from-[#C4A484] to-[#E8D4CF] text-white text-sm font-light rounded-full hover:opacity-90 disabled:opacity-50 transition-all"
+            >
+              Save
+            </button>
+          </div>
         </div>
       )}
 
-      {/* Add New Post Modal */}
-      <Modal
-        isOpen={isAddingNew}
-        onClose={() => setIsAddingNew(false)}
-        title="Save Inspiration Post"
-        description="Save a post that resonates with you"
-        size="lg"
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setIsAddingNew(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave} disabled={!newText.trim() || !newAuthor.trim()}>
-              Save Post
-            </Button>
-          </>
-        }
-      >
-        <div className="space-y-4">
-          <TextArea
-            label="Post Text"
-            value={newText}
-            onChange={(e) => setNewText(e.target.value)}
-            placeholder="Paste the post text here..."
-            rows={5}
-          />
-
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="Author"
-              value={newAuthor}
-              onChange={(e) => setNewAuthor(e.target.value)}
-              placeholder="@creator_name"
-            />
-            <Input
-              label="URL (optional)"
-              value={newUrl}
-              onChange={(e) => setNewUrl(e.target.value)}
-              placeholder="https://x.com/..."
-            />
+      {/* Posts */}
+      <div className="space-y-4">
+        {posts.length === 0 && !isAdding ? (
+          <div className="text-center py-20">
+            <p className="text-[#9C958E] font-light mb-4">Collect posts that inspire you</p>
+            <button
+              onClick={() => setIsAdding(true)}
+              className="px-6 py-2.5 glass hover-lift rounded-full text-sm font-light text-[#2D2A26]"
+            >
+              Add first post
+            </button>
           </div>
-
-          <TagInput
-            label="Topic Tags"
-            tags={newTopicTags}
-            onTagsChange={setNewTopicTags}
-            placeholder="Add topic tags..."
-          />
-
-          <TagInput
-            label="Format Tags"
-            tags={newFormatTags}
-            onTagsChange={setNewFormatTags}
-            placeholder="Add format tags..."
-            suggestions={FORMAT_TAG_PRESETS as unknown as string[]}
-          />
-
-          <TagInput
-            label="Vibe Tags"
-            tags={newVibeTags}
-            onTagsChange={setNewVibeTags}
-            placeholder="Add vibe tags..."
-            suggestions={VIBE_TAG_PRESETS as unknown as string[]}
-          />
-
-          <TextArea
-            label="Notes"
-            value={newNotes}
-            onChange={(e) => setNewNotes(e.target.value)}
-            placeholder="Why does this resonate? How would you adapt it?"
-            rows={3}
-            hint="Personal annotations about structure, hooks, or what you love about this post"
-          />
-        </div>
-      </Modal>
-
-      {/* Post Detail Modal */}
-      {selectedPost && (
-        <Modal
-          isOpen={!!selectedPost}
-          onClose={() => setSelectedPost(null)}
-          title={selectedPost.author}
-          size="lg"
-        >
-          <div className="space-y-4">
-            <div className="bg-neutral-50 rounded-lg p-4">
-              <p className="text-neutral-900 whitespace-pre-wrap">{selectedPost.text}</p>
-            </div>
-
-            {selectedPost.url && (
-              <a
-                href={selectedPost.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-blue-600 hover:underline flex items-center gap-1"
-              >
-                <LinkIcon className="w-4 h-4" />
-                View original on X
-              </a>
-            )}
-
-            <div>
-              <h4 className="text-sm font-medium text-neutral-700 mb-2">Format</h4>
-              <div className="flex flex-wrap gap-1">
-                {selectedPost.tags.format.map((tag) => (
-                  <Badge key={tag} variant="primary">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-sm font-medium text-neutral-700 mb-2">Vibe</h4>
-              <div className="flex flex-wrap gap-1">
-                {selectedPost.tags.vibe.map((tag) => (
-                  <Badge key={tag} variant="outline">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-
-            {selectedPost.highlights.length > 0 && (
-              <div>
-                <h4 className="text-sm font-medium text-neutral-700 mb-2">
-                  Highlights
-                </h4>
-                <ul className="list-disc list-inside text-sm text-neutral-600 space-y-1">
-                  {selectedPost.highlights.map((h, i) => (
-                    <li key={i}>{h}</li>
+        ) : (
+          posts.map((post) => (
+            <div
+              key={post.id}
+              className="group glass-subtle hover-lift rounded-2xl p-5 cursor-pointer"
+              onClick={() => setExpandedId(expandedId === post.id ? null : post.id)}
+            >
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-light text-[#2D2A26]">{post.author}</span>
+                  {post.tags.format.map((f) => (
+                    <span key={f} className="pill pill-warm">{f}</span>
                   ))}
-                </ul>
+                  {post.tags.vibe.map((v) => (
+                    <span key={v} className="pill pill-sage">{v}</span>
+                  ))}
+                </div>
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {post.url && (
+                    <a
+                      href={post.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="p-2 rounded-full hover:bg-white/50"
+                    >
+                      <ExternalLink className="w-4 h-4 text-[#9C958E]" />
+                    </a>
+                  )}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(post.id);
+                    }}
+                    className="p-2 rounded-full hover:bg-red-50"
+                  >
+                    <Trash2 className="w-4 h-4 text-[#9C958E] hover:text-red-400" />
+                  </button>
+                </div>
               </div>
-            )}
 
-            {selectedPost.notes && (
-              <div>
-                <h4 className="text-sm font-medium text-neutral-700 mb-2">
-                  Your Notes
-                </h4>
-                <p className="text-sm text-neutral-600 bg-amber-50 rounded-lg p-3 border border-amber-100">
-                  {selectedPost.notes}
-                </p>
-              </div>
-            )}
-          </div>
-        </Modal>
+              <p className={`text-[#2D2A26] font-light leading-relaxed ${
+                expandedId === post.id ? '' : 'line-clamp-3'
+              }`}>
+                {post.text}
+              </p>
+
+              {post.notes && expandedId === post.id && (
+                <div className="mt-4 pt-4 border-t border-white/20">
+                  <p className="text-sm text-[#6B6560] font-light italic">{post.notes}</p>
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* FAB */}
+      {!isAdding && (
+        <button
+          onClick={() => setIsAdding(true)}
+          className="fab glass-strong bg-gradient-to-r from-[#C4A484] to-[#E8D4CF] text-white hover:scale-105 transition-transform"
+        >
+          <Plus className="w-6 h-6" />
+        </button>
       )}
     </div>
   );

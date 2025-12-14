@@ -1,26 +1,78 @@
 @import "tailwindcss";
 
 :root {
-  --background: #fafafa;
-  --foreground: #171717;
+  /* Warm wellness palette */
+  --bg-base: #FAF8F5;
+  --bg-warm: #F5F0EA;
+  --bg-blush: #FDF5F3;
+
+  --text-primary: #2D2A26;
+  --text-secondary: #6B6560;
+  --text-muted: #9C958E;
+
+  --accent-warm: #C4A484;
+  --accent-blush: #E8D4CF;
+  --accent-sage: #B8C4B8;
+
+  --glass-white: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.4);
+  --glass-shadow: rgba(45, 42, 38, 0.04);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--bg-base);
+  --color-foreground: var(--text-primary);
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+/* Base */
+html {
+  scroll-behavior: smooth;
 }
 
-/* Custom scrollbar */
+body {
+  background: linear-gradient(135deg, var(--bg-base) 0%, var(--bg-warm) 50%, var(--bg-blush) 100%);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  min-height: 100vh;
+}
+
+/* Glassmorphic utilities */
+.glass {
+  background: var(--glass-white);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 32px var(--glass-shadow);
+}
+
+.glass-subtle {
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.glass-strong {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 12px 40px var(--glass-shadow);
+}
+
+.glass-dark {
+  background: rgba(45, 42, 38, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Pageless scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -28,48 +80,60 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #d1d5db;
-  border-radius: 4px;
+  background: var(--accent-blush);
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
+  background: var(--accent-warm);
 }
 
-/* Animation utilities */
+/* Smooth transitions */
+* {
+  transition-property: background-color, border-color, color, opacity, transform, box-shadow;
+  transition-duration: 200ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Focus styles - subtle */
+*:focus-visible {
+  outline: 2px solid var(--accent-warm);
+  outline-offset: 2px;
+}
+
+/* Selection */
+::selection {
+  background-color: var(--accent-blush);
+  color: var(--text-primary);
+}
+
+/* Animations */
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.animate-in {
-  animation: fadeIn 0.2s ease-out;
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
-.fade-in {
-  animation: fadeIn 0.2s ease-out;
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
 }
 
-.zoom-in-95 {
-  animation: slideUp 0.2s ease-out;
-}
+.animate-in { animation: fadeIn 0.3s ease-out; }
+.animate-slide-up { animation: slideUp 0.3s ease-out; }
+.animate-slide-in { animation: slideIn 0.3s ease-out; }
+.animate-float { animation: float 3s ease-in-out infinite; }
 
-/* Line clamp utilities */
+/* Line clamps */
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -84,21 +148,103 @@ body {
   overflow: hidden;
 }
 
-.line-clamp-4 {
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+/* Text styles */
+.text-wellness {
+  color: var(--text-primary);
+  font-weight: 300;
+  letter-spacing: 0.01em;
 }
 
-/* Focus styles */
-*:focus-visible {
-  outline: 2px solid #171717;
-  outline-offset: 2px;
+.text-muted {
+  color: var(--text-muted);
 }
 
-/* Selection color */
-::selection {
-  background-color: #171717;
+/* Hover lift effect */
+.hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px var(--glass-shadow);
+}
+
+/* Pageless dividers */
+.divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent-blush), transparent);
+  border: none;
+  margin: 2rem 0;
+}
+
+/* Floating action button */
+.fab {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(196, 164, 132, 0.3);
+  z-index: 50;
+}
+
+/* Pill badges */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+.pill-warm {
+  background: var(--accent-blush);
+  color: var(--text-primary);
+}
+
+.pill-sage {
+  background: var(--accent-sage);
+  color: var(--text-primary);
+}
+
+/* Input styles */
+input, textarea, select {
+  font-weight: 300;
+}
+
+input::placeholder, textarea::placeholder {
+  color: var(--text-muted);
+  font-weight: 300;
+}
+
+/* Tooltip */
+.tooltip {
+  position: relative;
+}
+
+.tooltip::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.5rem 0.75rem;
+  background: var(--text-primary);
   color: white;
+  font-size: 0.75rem;
+  border-radius: 6px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+.tooltip:hover::after {
+  opacity: 1;
 }
