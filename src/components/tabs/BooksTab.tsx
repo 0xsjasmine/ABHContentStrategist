@@ -61,17 +61,17 @@ export default function BooksTab() {
     <div className="relative min-h-[80vh]">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-light text-[#2D2A26] mb-1">Library</h1>
-        <p className="text-sm text-[#9C958E] font-light">Words that stay with you</p>
+        <h1 className="text-2xl font-semibold text-[#1A1A1A]">Library</h1>
+        <p className="text-sm text-[#999] mt-1">Words that stay with you</p>
       </div>
 
       {/* Add Form */}
       {isAdding && (
-        <div className="glass rounded-3xl p-6 mb-8 animate-slide-up">
+        <div className="card p-6 mb-8 animate-in">
           <div className="flex justify-between items-start mb-4">
-            <h2 className="text-lg font-light text-[#2D2A26]">Add a quote</h2>
-            <button onClick={resetForm} className="p-1 hover:bg-white/50 rounded-full">
-              <X className="w-4 h-4 text-[#9C958E]" />
+            <h2 className="text-lg font-medium text-[#1A1A1A]">Add a quote</h2>
+            <button onClick={resetForm} className="p-1 hover:bg-[#F5F5F5] rounded-lg">
+              <X className="w-4 h-4 text-[#999]" />
             </button>
           </div>
 
@@ -79,7 +79,7 @@ export default function BooksTab() {
             value={quoteText}
             onChange={(e) => setQuoteText(e.target.value)}
             placeholder="The quote..."
-            className="w-full bg-transparent text-[#2D2A26] placeholder:text-[#9C958E] font-light italic resize-none focus:outline-none min-h-[100px] mb-4 text-lg"
+            className="w-full bg-transparent text-[#1A1A1A] placeholder:text-[#999] italic resize-none focus:outline-none min-h-[100px] mb-4 text-lg"
           />
 
           <div className="grid grid-cols-2 gap-4 mb-4">
@@ -88,14 +88,14 @@ export default function BooksTab() {
               value={author}
               onChange={(e) => setAuthor(e.target.value)}
               placeholder="Author"
-              className="px-4 py-2.5 glass-subtle rounded-2xl text-sm font-light focus:outline-none"
+              className="px-4 py-2.5 border border-[#EEE] rounded-xl text-sm focus:outline-none focus:border-[#1A1A1A]"
             />
             <input
               type="text"
               value={bookTitle}
               onChange={(e) => setBookTitle(e.target.value)}
               placeholder="Book title"
-              className="px-4 py-2.5 glass-subtle rounded-2xl text-sm font-light focus:outline-none"
+              className="px-4 py-2.5 border border-[#EEE] rounded-xl text-sm focus:outline-none focus:border-[#1A1A1A]"
             />
           </div>
 
@@ -103,14 +103,14 @@ export default function BooksTab() {
             value={myTake}
             onChange={(e) => setMyTake(e.target.value)}
             placeholder="Your take — why does this matter to you?"
-            className="w-full bg-transparent text-[#2D2A26] placeholder:text-[#9C958E] text-sm font-light resize-none focus:outline-none min-h-[80px] mb-4"
+            className="w-full bg-transparent text-[#1A1A1A] placeholder:text-[#999] text-sm resize-none focus:outline-none min-h-[80px] mb-4"
           />
 
           <div className="flex justify-end">
             <button
               onClick={handleSave}
               disabled={!quoteText.trim() || !author.trim() || !bookTitle.trim() || !myTake.trim()}
-              className="px-6 py-2 bg-gradient-to-r from-[#C4A484] to-[#E8D4CF] text-white text-sm font-light rounded-full hover:opacity-90 disabled:opacity-50 transition-all"
+              className="btn-primary disabled:opacity-50"
             >
               Save
             </button>
@@ -119,13 +119,13 @@ export default function BooksTab() {
       )}
 
       {/* Quotes */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         {quotes.length === 0 && !isAdding ? (
           <div className="text-center py-20">
-            <p className="text-[#9C958E] font-light mb-4">Quotes that add depth to your voice</p>
+            <p className="text-[#999] mb-4">Quotes that add depth to your voice</p>
             <button
               onClick={() => setIsAdding(true)}
-              className="px-6 py-2.5 glass hover-lift rounded-full text-sm font-light text-[#2D2A26]"
+              className="btn-secondary"
             >
               Add first quote
             </button>
@@ -134,13 +134,13 @@ export default function BooksTab() {
           quotes.map((quote) => (
             <div
               key={quote.id}
-              className="group glass-subtle hover-lift rounded-2xl p-6 cursor-pointer"
+              className="group card-hover p-6 cursor-pointer"
               onClick={() => setExpandedId(expandedId === quote.id ? null : quote.id)}
             >
               {/* Quote */}
               <div className="flex gap-3 mb-3">
-                <Quote className="w-5 h-5 text-[#C4A484] flex-shrink-0 mt-1" />
-                <p className={`text-[#2D2A26] font-light italic leading-relaxed ${
+                <Quote className="w-5 h-5 text-[#999] flex-shrink-0 mt-1" />
+                <p className={`text-[#1A1A1A] italic leading-relaxed ${
                   expandedId === quote.id ? '' : 'line-clamp-3'
                 }`}>
                   &ldquo;{quote.quote}&rdquo;
@@ -148,14 +148,14 @@ export default function BooksTab() {
               </div>
 
               {/* Attribution */}
-              <p className="text-sm text-[#9C958E] font-light mb-3">
+              <p className="text-sm text-[#999] mb-3 ml-8">
                 — {quote.author}, <span className="italic">{quote.bookTitle}</span>
               </p>
 
               {/* My Take */}
               {(expandedId === quote.id || quote.myTake.length < 100) && (
-                <div className="mt-4 pt-4 border-t border-white/20">
-                  <p className="text-sm text-[#6B6560] font-light">{quote.myTake}</p>
+                <div className="mt-4 pt-4 border-t border-[#EEE] ml-8">
+                  <p className="text-sm text-[#666]">{quote.myTake}</p>
                 </div>
               )}
 
@@ -166,9 +166,9 @@ export default function BooksTab() {
                     e.stopPropagation();
                     handleDelete(quote.id);
                   }}
-                  className="p-2 rounded-full hover:bg-red-50"
+                  className="p-2 rounded-lg hover:bg-red-50"
                 >
-                  <Trash2 className="w-4 h-4 text-[#9C958E] hover:text-red-400" />
+                  <Trash2 className="w-4 h-4 text-[#999] hover:text-red-500" />
                 </button>
               </div>
             </div>
@@ -177,10 +177,10 @@ export default function BooksTab() {
       </div>
 
       {/* FAB */}
-      {!isAdding && (
+      {!isAdding && quotes.length > 0 && (
         <button
           onClick={() => setIsAdding(true)}
-          className="fab glass-strong bg-gradient-to-r from-[#C4A484] to-[#E8D4CF] text-white hover:scale-105 transition-transform"
+          className="fab"
         >
           <Plus className="w-6 h-6" />
         </button>

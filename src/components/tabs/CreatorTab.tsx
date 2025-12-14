@@ -75,17 +75,17 @@ export default function CreatorTab() {
     <div className="relative min-h-[80vh]">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-light text-[#2D2A26] mb-1">Inspiration</h1>
-        <p className="text-sm text-[#9C958E] font-light">Posts that resonate</p>
+        <h1 className="text-2xl font-semibold text-[#1A1A1A]">Inspiration</h1>
+        <p className="text-sm text-[#999] mt-1">Posts that resonate</p>
       </div>
 
       {/* Add Form */}
       {isAdding && (
-        <div className="glass rounded-3xl p-6 mb-8 animate-slide-up">
+        <div className="card p-6 mb-8 animate-in">
           <div className="flex justify-between items-start mb-4">
-            <h2 className="text-lg font-light text-[#2D2A26]">Save a post</h2>
-            <button onClick={resetForm} className="p-1 hover:bg-white/50 rounded-full">
-              <X className="w-4 h-4 text-[#9C958E]" />
+            <h2 className="text-lg font-medium text-[#1A1A1A]">Save a post</h2>
+            <button onClick={resetForm} className="p-1 hover:bg-[#F5F5F5] rounded-lg">
+              <X className="w-4 h-4 text-[#999]" />
             </button>
           </div>
 
@@ -93,7 +93,7 @@ export default function CreatorTab() {
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Paste the post..."
-            className="w-full bg-transparent text-[#2D2A26] placeholder:text-[#9C958E] font-light resize-none focus:outline-none min-h-[120px] mb-4"
+            className="w-full bg-transparent text-[#1A1A1A] placeholder:text-[#999] resize-none focus:outline-none min-h-[120px] mb-4"
           />
 
           <div className="grid grid-cols-2 gap-4 mb-4">
@@ -102,29 +102,29 @@ export default function CreatorTab() {
               value={author}
               onChange={(e) => setAuthor(e.target.value)}
               placeholder="@creator"
-              className="px-4 py-2.5 glass-subtle rounded-2xl text-sm font-light focus:outline-none"
+              className="px-4 py-2.5 border border-[#EEE] rounded-xl text-sm focus:outline-none focus:border-[#1A1A1A]"
             />
             <input
               type="text"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="Link (optional)"
-              className="px-4 py-2.5 glass-subtle rounded-2xl text-sm font-light focus:outline-none"
+              className="px-4 py-2.5 border border-[#EEE] rounded-xl text-sm focus:outline-none focus:border-[#1A1A1A]"
             />
           </div>
 
           {/* Format & Vibe */}
           <div className="mb-4">
-            <p className="text-xs text-[#9C958E] mb-2 font-light">Format</p>
+            <p className="text-xs text-[#999] mb-2">Format</p>
             <div className="flex flex-wrap gap-2">
               {FORMAT_OPTIONS.map((f) => (
                 <button
                   key={f}
                   onClick={() => setFormat(format === f ? '' : f)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-light transition-all ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                     format === f
-                      ? 'bg-[#C4A484] text-white'
-                      : 'glass-subtle text-[#6B6560] hover:text-[#2D2A26]'
+                      ? 'bg-[#1A1A1A] text-white'
+                      : 'bg-[#F5F5F5] text-[#666] hover:text-[#1A1A1A]'
                   }`}
                 >
                   {f}
@@ -134,16 +134,16 @@ export default function CreatorTab() {
           </div>
 
           <div className="mb-4">
-            <p className="text-xs text-[#9C958E] mb-2 font-light">Vibe</p>
+            <p className="text-xs text-[#999] mb-2">Vibe</p>
             <div className="flex flex-wrap gap-2">
               {VIBE_OPTIONS.map((v) => (
                 <button
                   key={v}
                   onClick={() => setVibe(vibe === v ? '' : v)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-light transition-all ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                     vibe === v
-                      ? 'bg-[#B8C4B8] text-white'
-                      : 'glass-subtle text-[#6B6560] hover:text-[#2D2A26]'
+                      ? 'bg-[#1A1A1A] text-white'
+                      : 'bg-[#F5F5F5] text-[#666] hover:text-[#1A1A1A]'
                   }`}
                 >
                   {v}
@@ -156,14 +156,14 @@ export default function CreatorTab() {
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Why does this resonate? (optional)"
-            className="w-full bg-transparent text-[#2D2A26] placeholder:text-[#9C958E] text-sm font-light resize-none focus:outline-none h-16 mb-4"
+            className="w-full bg-transparent text-[#1A1A1A] placeholder:text-[#999] text-sm resize-none focus:outline-none h-16 mb-4"
           />
 
           <div className="flex justify-end">
             <button
               onClick={handleSave}
               disabled={!text.trim() || !author.trim()}
-              className="px-6 py-2 bg-gradient-to-r from-[#C4A484] to-[#E8D4CF] text-white text-sm font-light rounded-full hover:opacity-90 disabled:opacity-50 transition-all"
+              className="btn-primary disabled:opacity-50"
             >
               Save
             </button>
@@ -172,13 +172,13 @@ export default function CreatorTab() {
       )}
 
       {/* Posts */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         {posts.length === 0 && !isAdding ? (
           <div className="text-center py-20">
-            <p className="text-[#9C958E] font-light mb-4">Collect posts that inspire you</p>
+            <p className="text-[#999] mb-4">Collect posts that inspire you</p>
             <button
               onClick={() => setIsAdding(true)}
-              className="px-6 py-2.5 glass hover-lift rounded-full text-sm font-light text-[#2D2A26]"
+              className="btn-secondary"
             >
               Add first post
             </button>
@@ -187,17 +187,17 @@ export default function CreatorTab() {
           posts.map((post) => (
             <div
               key={post.id}
-              className="group glass-subtle hover-lift rounded-2xl p-5 cursor-pointer"
+              className="group card-hover p-5 cursor-pointer"
               onClick={() => setExpandedId(expandedId === post.id ? null : post.id)}
             >
               <div className="flex items-start justify-between mb-2">
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-light text-[#2D2A26]">{post.author}</span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-medium text-[#1A1A1A]">{post.author}</span>
                   {post.tags.format.map((f) => (
-                    <span key={f} className="pill pill-warm">{f}</span>
+                    <span key={f} className="text-xs bg-[#F5F5F5] text-[#666] px-2 py-0.5 rounded">{f}</span>
                   ))}
                   {post.tags.vibe.map((v) => (
-                    <span key={v} className="pill pill-sage">{v}</span>
+                    <span key={v} className="text-xs bg-[#F5F5F5] text-[#666] px-2 py-0.5 rounded">{v}</span>
                   ))}
                 </div>
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -207,9 +207,9 @@ export default function CreatorTab() {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="p-2 rounded-full hover:bg-white/50"
+                      className="p-2 rounded-lg hover:bg-[#F5F5F5]"
                     >
-                      <ExternalLink className="w-4 h-4 text-[#9C958E]" />
+                      <ExternalLink className="w-4 h-4 text-[#999]" />
                     </a>
                   )}
                   <button
@@ -217,22 +217,22 @@ export default function CreatorTab() {
                       e.stopPropagation();
                       handleDelete(post.id);
                     }}
-                    className="p-2 rounded-full hover:bg-red-50"
+                    className="p-2 rounded-lg hover:bg-red-50"
                   >
-                    <Trash2 className="w-4 h-4 text-[#9C958E] hover:text-red-400" />
+                    <Trash2 className="w-4 h-4 text-[#999] hover:text-red-500" />
                   </button>
                 </div>
               </div>
 
-              <p className={`text-[#2D2A26] font-light leading-relaxed ${
+              <p className={`text-[#1A1A1A] leading-relaxed ${
                 expandedId === post.id ? '' : 'line-clamp-3'
               }`}>
                 {post.text}
               </p>
 
               {post.notes && expandedId === post.id && (
-                <div className="mt-4 pt-4 border-t border-white/20">
-                  <p className="text-sm text-[#6B6560] font-light italic">{post.notes}</p>
+                <div className="mt-4 pt-4 border-t border-[#EEE]">
+                  <p className="text-sm text-[#666] italic">{post.notes}</p>
                 </div>
               )}
             </div>
@@ -241,10 +241,10 @@ export default function CreatorTab() {
       </div>
 
       {/* FAB */}
-      {!isAdding && (
+      {!isAdding && posts.length > 0 && (
         <button
           onClick={() => setIsAdding(true)}
-          className="fab glass-strong bg-gradient-to-r from-[#C4A484] to-[#E8D4CF] text-white hover:scale-105 transition-transform"
+          className="fab"
         >
           <Plus className="w-6 h-6" />
         </button>

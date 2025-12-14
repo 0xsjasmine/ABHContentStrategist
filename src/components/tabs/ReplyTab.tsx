@@ -82,17 +82,17 @@ export default function ReplyTab() {
     <div className="relative min-h-[80vh]">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-light text-[#2D2A26] mb-1">Reply</h1>
-        <p className="text-sm text-[#9C958E] font-light">Engage authentically</p>
+        <h1 className="text-2xl font-semibold text-[#1A1A1A]">Reply</h1>
+        <p className="text-sm text-[#999] mt-1">Engage authentically</p>
       </div>
 
       {/* Add Form */}
       {isAdding && (
-        <div className="glass rounded-3xl p-6 mb-8 animate-slide-up">
+        <div className="card p-6 mb-8 animate-in">
           <div className="flex justify-between items-start mb-4">
-            <h2 className="text-lg font-light text-[#2D2A26]">Add post to reply</h2>
-            <button onClick={resetForm} className="p-1 hover:bg-white/50 rounded-full">
-              <X className="w-4 h-4 text-[#9C958E]" />
+            <h2 className="text-lg font-medium text-[#1A1A1A]">Add post to reply</h2>
+            <button onClick={resetForm} className="p-1 hover:bg-[#F5F5F5] rounded-lg">
+              <X className="w-4 h-4 text-[#999]" />
             </button>
           </div>
 
@@ -101,27 +101,27 @@ export default function ReplyTab() {
             value={author}
             onChange={(e) => setAuthor(e.target.value)}
             placeholder="@creator"
-            className="w-full px-4 py-2.5 glass-subtle rounded-2xl text-sm font-light focus:outline-none mb-4"
+            className="w-full px-4 py-2.5 border border-[#EEE] rounded-xl text-sm focus:outline-none focus:border-[#1A1A1A] mb-4"
           />
 
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Paste their post..."
-            className="w-full bg-transparent text-[#2D2A26] placeholder:text-[#9C958E] font-light resize-none focus:outline-none min-h-[100px] mb-4"
+            className="w-full bg-transparent text-[#1A1A1A] placeholder:text-[#999] resize-none focus:outline-none min-h-[100px] mb-4"
           />
 
           <div className="mb-4">
-            <p className="text-xs text-[#9C958E] mb-2 font-light">Reply style</p>
+            <p className="text-xs text-[#999] mb-2">Reply style</p>
             <div className="flex flex-wrap gap-2">
               {STYLES.map((s) => (
                 <button
                   key={s.value}
                   onClick={() => setStyle(s.value)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-light transition-all ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                     style === s.value
-                      ? 'bg-[#C4A484] text-white'
-                      : 'glass-subtle text-[#6B6560] hover:text-[#2D2A26]'
+                      ? 'bg-[#1A1A1A] text-white'
+                      : 'bg-[#F5F5F5] text-[#666] hover:text-[#1A1A1A]'
                   }`}
                 >
                   {s.label}
@@ -134,7 +134,7 @@ export default function ReplyTab() {
             <button
               onClick={handleAdd}
               disabled={!author.trim() || !text.trim()}
-              className="px-6 py-2 bg-gradient-to-r from-[#C4A484] to-[#E8D4CF] text-white text-sm font-light rounded-full hover:opacity-90 disabled:opacity-50 transition-all flex items-center gap-2"
+              className="btn-primary disabled:opacity-50 flex items-center gap-2"
             >
               <Sparkles className="w-4 h-4" />
               Generate replies
@@ -144,54 +144,56 @@ export default function ReplyTab() {
       )}
 
       {/* Targets */}
-      <div className="space-y-6">
+      <div className="space-y-4">
         {targets.length === 0 && !isAdding ? (
           <div className="text-center py-20">
-            <MessageCircle className="w-12 h-12 text-[#E8D4CF] mx-auto mb-4" />
-            <p className="text-[#9C958E] font-light mb-4">Strategic replies, rooted in your voice</p>
+            <MessageCircle className="w-12 h-12 text-[#DDD] mx-auto mb-4" />
+            <p className="text-[#999] mb-4">Strategic replies, rooted in your voice</p>
             <button
               onClick={() => setIsAdding(true)}
-              className="px-6 py-2.5 glass hover-lift rounded-full text-sm font-light text-[#2D2A26]"
+              className="btn-secondary"
             >
               Add a post
             </button>
           </div>
         ) : (
           targets.map((target) => (
-            <div key={target.id} className="glass-subtle rounded-2xl p-5">
+            <div key={target.id} className="card p-5">
               {/* Original post */}
               <div className="flex items-start justify-between mb-3">
-                <div>
-                  <span className="text-sm font-light text-[#2D2A26]">{target.author}</span>
-                  <span className="pill pill-warm ml-2">{STYLES.find(s => s.value === target.style)?.label}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-[#1A1A1A]">{target.author}</span>
+                  <span className="text-xs bg-[#F5F5F5] text-[#666] px-2 py-0.5 rounded">
+                    {STYLES.find(s => s.value === target.style)?.label}
+                  </span>
                 </div>
                 <button
                   onClick={() => handleDelete(target.id)}
-                  className="p-1 hover:bg-red-50 rounded-full"
+                  className="p-1 hover:bg-red-50 rounded-lg"
                 >
-                  <Trash2 className="w-4 h-4 text-[#9C958E] hover:text-red-400" />
+                  <Trash2 className="w-4 h-4 text-[#999] hover:text-red-500" />
                 </button>
               </div>
-              <p className="text-[#6B6560] font-light text-sm mb-4 line-clamp-2">{target.text}</p>
+              <p className="text-[#666] text-sm mb-4 line-clamp-2">{target.text}</p>
 
               {/* Generated replies */}
               {target.replies && (
-                <div className="space-y-2 pt-4 border-t border-white/20">
-                  <p className="text-xs text-[#9C958E] font-light mb-2">Reply options</p>
+                <div className="space-y-2 pt-4 border-t border-[#EEE]">
+                  <p className="text-xs text-[#999] mb-2">Reply options</p>
                   {target.replies.map((reply, i) => (
                     <div
                       key={i}
-                      className="flex items-start justify-between gap-3 p-3 glass rounded-xl"
+                      className="flex items-start justify-between gap-3 p-3 bg-[#FAFAFA] rounded-xl"
                     >
-                      <p className="text-sm text-[#2D2A26] font-light flex-1">{reply}</p>
+                      <p className="text-sm text-[#1A1A1A] flex-1">{reply}</p>
                       <button
                         onClick={() => handleCopy(reply, `${target.id}-${i}`)}
-                        className="p-2 hover:bg-white/50 rounded-full flex-shrink-0"
+                        className="p-2 hover:bg-white rounded-lg flex-shrink-0"
                       >
                         {copiedIndex === `${target.id}-${i}` ? (
-                          <Check className="w-4 h-4 text-[#B8C4B8]" />
+                          <Check className="w-4 h-4 text-green-500" />
                         ) : (
-                          <Copy className="w-4 h-4 text-[#9C958E]" />
+                          <Copy className="w-4 h-4 text-[#999]" />
                         )}
                       </button>
                     </div>
@@ -207,7 +209,7 @@ export default function ReplyTab() {
       {!isAdding && targets.length > 0 && (
         <button
           onClick={() => setIsAdding(true)}
-          className="fab glass-strong bg-gradient-to-r from-[#C4A484] to-[#E8D4CF] text-white hover:scale-105 transition-transform"
+          className="fab"
         >
           <Plus className="w-6 h-6" />
         </button>
