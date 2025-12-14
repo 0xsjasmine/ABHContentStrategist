@@ -53,7 +53,7 @@ Format as a conversational brief - like you're a smart cultural strategist givin
         'Authorization': `Bearer ${grokApiKey}`,
       },
       body: JSON.stringify({
-        model: 'grok-beta',
+        model: 'grok-3',
         messages: [
           { role: 'system', content: GROK_SYSTEM_PROMPT },
           { role: 'user', content: userPrompt }

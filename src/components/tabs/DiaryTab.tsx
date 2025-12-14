@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Sparkles, Trash2, MoreHorizontal } from 'lucide-react';
+import { Plus, Sparkles, Trash2, MoreHorizontal, Tag } from 'lucide-react';
 import {
   getAllDiaryEntries,
   createDiaryEntry,
@@ -10,11 +10,11 @@ import {
 } from '@/lib/db';
 import type { DiaryEntry, DiaryEntryType } from '@/types';
 
-const ENTRY_TYPES: { value: DiaryEntryType; label: string }[] = [
-  { value: 'stories', label: 'Story' },
-  { value: 'builds', label: 'Build' },
-  { value: 'takes', label: 'Take' },
-  { value: 'reflections', label: 'Reflect' },
+const ENTRY_TYPES: { value: DiaryEntryType; label: string; icon: string }[] = [
+  { value: 'stories', label: 'Story', icon: '📖' },
+  { value: 'builds', label: 'Build', icon: '🔨' },
+  { value: 'takes', label: 'Take', icon: '💭' },
+  { value: 'reflections', label: 'Reflect', icon: '✨' },
 ];
 
 interface DiaryTabProps {
@@ -26,9 +26,10 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
   const [entries, setEntries] = useState<DiaryEntry[]>([]);
   const [isWriting, setIsWriting] = useState(false);
   const [content, setContent] = useState('');
-  const [entryType, setEntryType] = useState<DiaryEntryType>('reflections');
+  const [entryType, setEntryType] = useState<DiaryEntryType | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [showTags, setShowTags] = useState(false);
 
   useEffect(() => {
     loadEntries();
@@ -43,19 +44,21 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
     if (!content.trim()) return;
 
     if (editingId) {
-      await updateDiaryEntry(editingId, { content, type: entryType });
+      await updateDiaryEntry(editingId, { content, type: entryType || 'reflections' });
     } else {
       await createDiaryEntry({
         timestamp: new Date().toISOString(),
         content,
         tags: [],
-        type: entryType,
+        type: entryType || 'reflections',
       });
     }
 
     setContent('');
     setIsWriting(false);
     setEditingId(null);
+    setEntryType(null);
+    setShowTags(false);
     await loadEntries();
   };
 
@@ -82,6 +85,10 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
+  const getTypeLabel = (type: DiaryEntryType) => {
+    return ENTRY_TYPES.find(t => t.value === type)?.label || type;
+  };
+
   return (
     <div className="relative min-h-[80vh]">
       {/* Header */}
@@ -90,49 +97,73 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
         <p className="text-sm text-[#999] mt-1">Your voice, unfiltered</p>
       </div>
 
-      {/* Writing Area */}
+      {/* Writing Area - Notion style */}
       {isWriting ? (
         <div className="card p-6 mb-8 animate-in">
-          {/* Type Pills */}
-          <div className="flex gap-2 mb-4">
-            {ENTRY_TYPES.map((type) => (
-              <button
-                key={type.value}
-                onClick={() => setEntryType(type.value)}
-                className={`
-                  px-4 py-1.5 rounded-lg text-sm font-medium transition-colors
-                  ${entryType === type.value
-                    ? 'bg-[#1A1A1A] text-white'
-                    : 'bg-[#F5F5F5] text-[#666] hover:text-[#1A1A1A]'
-                  }
-                `}
-              >
-                {type.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Textarea */}
+          {/* Clean textarea - no distractions */}
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="What's on your mind..."
             autoFocus
-            className="w-full bg-transparent text-[#1A1A1A] placeholder:text-[#999] text-base resize-none focus:outline-none min-h-[200px] leading-relaxed"
+            className="w-full bg-transparent text-[#1A1A1A] placeholder:text-[#999] text-base resize-none focus:outline-none min-h-[250px] leading-relaxed"
           />
 
-          {/* Actions */}
+          {/* Bottom bar with tags + save */}
           <div className="flex items-center justify-between mt-4 pt-4 border-t border-[#EEE]">
-            <button
-              onClick={() => {
-                setIsWriting(false);
-                setContent('');
-                setEditingId(null);
-              }}
-              className="text-sm text-[#666] hover:text-[#1A1A1A]"
-            >
-              Cancel
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setIsWriting(false);
+                  setContent('');
+                  setEditingId(null);
+                  setEntryType(null);
+                  setShowTags(false);
+                }}
+                className="text-sm text-[#999] hover:text-[#1A1A1A]"
+              >
+                Cancel
+              </button>
+
+              {/* Tag selector */}
+              <div className="relative ml-4">
+                <button
+                  onClick={() => setShowTags(!showTags)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                    entryType
+                      ? 'bg-[#1A1A1A] text-white'
+                      : 'bg-[#F5F5F5] text-[#666] hover:text-[#1A1A1A]'
+                  }`}
+                >
+                  <Tag className="w-3.5 h-3.5" />
+                  {entryType ? getTypeLabel(entryType) : 'Add tag'}
+                </button>
+
+                {/* Tag dropdown */}
+                {showTags && (
+                  <div className="absolute bottom-full left-0 mb-2 bg-white rounded-xl shadow-lg border border-[#EEE] p-2 min-w-[140px] z-10">
+                    {ENTRY_TYPES.map((type) => (
+                      <button
+                        key={type.value}
+                        onClick={() => {
+                          setEntryType(type.value);
+                          setShowTags(false);
+                        }}
+                        className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-left transition-colors ${
+                          entryType === type.value
+                            ? 'bg-[#F5F5F5] text-[#1A1A1A]'
+                            : 'text-[#666] hover:bg-[#FAFAFA]'
+                        }`}
+                      >
+                        <span>{type.icon}</span>
+                        <span>{type.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
             <button
               onClick={handleSave}
               disabled={!content.trim()}
@@ -163,15 +194,27 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
               className="group card-hover p-5 cursor-pointer"
               onClick={() => setExpandedId(expandedId === entry.id ? null : entry.id)}
             >
-              {/* Entry Header */}
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex items-center gap-3">
+              {/* Entry Content first */}
+              <p
+                className={`text-[#1A1A1A] leading-relaxed mb-3 ${
+                  expandedId === entry.id ? '' : 'line-clamp-3'
+                }`}
+              >
+                {entry.content}
+              </p>
+
+              {/* Footer with date, tag, actions */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
                   <span className="text-xs text-[#999]">
                     {formatDate(entry.timestamp)}
                   </span>
-                  <span className="text-xs bg-[#F5F5F5] text-[#666] px-2 py-0.5 rounded">
-                    {entry.type}
-                  </span>
+                  {entry.type && (
+                    <span className="text-xs bg-[#F5F5F5] text-[#666] px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <span>{ENTRY_TYPES.find(t => t.value === entry.type)?.icon}</span>
+                      {getTypeLabel(entry.type)}
+                    </span>
+                  )}
                 </div>
 
                 {/* Actions - show on hover */}
@@ -182,7 +225,7 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
                       onGeneratePost?.(entry);
                     }}
                     className="p-2 rounded-lg hover:bg-[#F5F5F5] transition-colors"
-                    title="Generate"
+                    title="Generate post"
                   >
                     <Sparkles className="w-4 h-4 text-[#666]" />
                   </button>
@@ -208,22 +251,6 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
                   </button>
                 </div>
               </div>
-
-              {/* Entry Content */}
-              <p
-                className={`text-[#1A1A1A] leading-relaxed ${
-                  expandedId === entry.id ? '' : 'line-clamp-3'
-                }`}
-              >
-                {entry.content}
-              </p>
-
-              {/* Expand indicator */}
-              {entry.content.length > 200 && expandedId !== entry.id && (
-                <span className="text-xs text-[#999] mt-2 inline-block">
-                  tap to expand
-                </span>
-              )}
             </div>
           ))
         )}
