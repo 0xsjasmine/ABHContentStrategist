@@ -62,10 +62,22 @@ Format as a conversational brief - like you're a smart cultural strategist givin
         ],
         temperature: 0.7,
         max_tokens: 4000,
-        // Agentic Search Tools - model will iteratively search X and web
+        // Agentic Search Tools - using function type with tool names
         tools: [
-          { type: 'x_search' },
-          { type: 'web_search' }
+          {
+            type: 'function',
+            function: {
+              name: 'x_search',
+              description: 'Search X posts and threads'
+            }
+          },
+          {
+            type: 'function',
+            function: {
+              name: 'web_search',
+              description: 'Search the web'
+            }
+          }
         ]
       }),
     });
