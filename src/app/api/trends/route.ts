@@ -47,7 +47,7 @@ Use real data from your X search. Include actual engagement numbers where possib
 Format as a conversational brief - like you're a smart cultural strategist giving a morning update.`;
     }
 
-    // Call xAI Grok API with Live Search enabled
+    // Call xAI Grok API with Agentic Search Tools
     const response = await fetch('https://api.x.ai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -61,18 +61,12 @@ Format as a conversational brief - like you're a smart cultural strategist givin
           { role: 'user', content: userPrompt }
         ],
         temperature: 0.7,
-        max_tokens: 2000,
-        // Enable Live Search on X and news
-        search_parameters: {
-          mode: 'on',
-          sources: [
-            { type: 'x', post_favorite_count: 100 }, // Only posts with 100+ likes
-            { type: 'news' },
-            { type: 'web' }
-          ],
-          max_search_results: 20,
-          return_citations: true
-        }
+        max_tokens: 4000,
+        // Agentic Search Tools - model will iteratively search X and web
+        tools: [
+          { type: 'x_search' },
+          { type: 'web_search' }
+        ]
       }),
     });
 
@@ -80,14 +74,14 @@ Format as a conversational brief - like you're a smart cultural strategist givin
       const errorText = await response.text();
       console.error('Grok API error:', errorText);
       return NextResponse.json(
-        { error: `Grok API error: ${response.status}` },
+        { error: `Grok API error: ${response.status} - ${errorText}` },
         { status: response.status }
       );
     }
 
     const data = await response.json();
     const briefContent = data.choices?.[0]?.message?.content || 'No response from Grok';
-    const citations = data.choices?.[0]?.message?.citations || [];
+    const citations = data.citations || [];
 
     // Parse the response to extract structured data for bento boxes
     const structured = parseGrokResponse(briefContent);
