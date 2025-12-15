@@ -47,7 +47,7 @@ Use real data from your X search. Include actual engagement numbers where possib
 Format as a conversational brief - like you're a smart cultural strategist giving a morning update.`;
     }
 
-    // Call xAI Grok API with Agentic Search Tools
+    // Call xAI Grok API with Live Search (search_parameters approach)
     const response = await fetch('https://api.x.ai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -62,25 +62,17 @@ Format as a conversational brief - like you're a smart cultural strategist givin
         ],
         temperature: 0.7,
         max_tokens: 4000,
-        // Agentic Search Tools - using function type with tool names
-        tools: [
-          {
-            type: 'function',
-            function: {
-              name: 'x_search',
-              description: 'Search X posts and threads',
-              parameters: { type: 'object', properties: {} }
-            }
-          },
-          {
-            type: 'function',
-            function: {
-              name: 'web_search',
-              description: 'Search the web',
-              parameters: { type: 'object', properties: {} }
-            }
-          }
-        ]
+        // Live Search API - searches X, news, web automatically
+        search_parameters: {
+          mode: 'on',
+          sources: [
+            { type: 'x' },
+            { type: 'news' },
+            { type: 'web' }
+          ],
+          max_search_results: 20,
+          return_citations: true
+        }
       }),
     });
 
