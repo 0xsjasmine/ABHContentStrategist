@@ -30,16 +30,21 @@ Look for:
 
 Keep it real - if nothing interesting is happening, just say so.`;
     } else {
-      // Daily cultural pulse
-      userPrompt = `What's happening on X today that I should know about?
+      // Daily cultural pulse - focused on HER content pillars
+      userPrompt = `What's happening on X today that's relevant to my content?
 
-Focus on US tech/creator scene - AI, content creation, ambitious women, work-life balance, building in public. Oh and anything from Steven Bartlett or Diary of a CEO crew.
+My pillars:
+- How I use AI to be MORE human (scaling the scalable to double down on real relationships, deep work)
+- Trade-offs and seasons of life (building mode vs family/health/relationships)
+- Bets and takes on where culture is going (being human/IRL as the luxury)
+- GenAI innovation in storytelling and content
+- Building in public - the real version
 
-${diaryContext ? `\nFor context, here's what I've been thinking about lately:\n${diaryContext}` : ''}
+${diaryContext ? `\nFor context, here's what I've been thinking about:\n${diaryContext}` : ''}
 
-Show me actual tweets if something's popping - quote them with the @handle and engagement if it's notable. Tell me if there's a gap I could fill or a conversation worth joining.
+Find conversations where my POV would add something fresh. Show me actual tweets if they're worth engaging with - quote them with @handle and numbers. If there's a take I might push back on, surface it.
 
-Don't give me everything - just the stuff that actually matters.`;
+Be honest - if nothing relevant is happening today, just say so.`;
     }
 
     // Call xAI Grok API with Live Search (search_parameters approach)
