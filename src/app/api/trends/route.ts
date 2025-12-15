@@ -15,36 +15,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Build the user prompt
+    // Build the user prompt - casual, like texting a friend
     let userPrompt = '';
 
     if (query) {
       // On-demand search for specific topic
-      userPrompt = `Search X and the web for recent conversations about: "${query}"
+      userPrompt = `Hey, can you check what's happening on X about "${query}"?
 
-Provide:
-1. Current volume/mentions if available
-2. Top voices discussing this (with @handles)
-3. Main perspectives in the conversation
-4. What's MISSING that the user could uniquely add
-5. Any viral posts or heated debates
-6. Suggested entry points
+Look for:
+- Who's talking about it (drop the @handles)
+- Any tweets getting traction - quote them if they're good
+- What angle is missing that could be interesting to explore
+- Is it worth jumping in today or nah?
 
-Be specific with real data from your search.`;
+Keep it real - if nothing interesting is happening, just say so.`;
     } else {
-      // Daily cultural brief
-      userPrompt = `Search X right now for today's cultural intelligence brief.
+      // Daily cultural pulse
+      userPrompt = `What's happening on X today that I should know about?
 
-Focus on finding:
-1. TOP 5 TRENDING TOPICS relevant to AI, content creation, ambitious women, work-life balance, building in public
-2. TOP 3 TRENDING PEOPLE posting about these topics (include @handles)
-3. 1-2 ACTIVE DEBATES worth joining
-4. Any HIGH URGENCY opportunities (post today)
+Focus on US tech/creator scene - AI, content creation, ambitious women, work-life balance, building in public. Oh and anything from Steven Bartlett or Diary of a CEO crew.
 
-${diaryContext ? `\nUser's recent diary themes to match against:\n${diaryContext}` : ''}
+${diaryContext ? `\nFor context, here's what I've been thinking about lately:\n${diaryContext}` : ''}
 
-Use real data from your X search. Include actual engagement numbers where possible.
-Format as a conversational brief - like you're a smart cultural strategist giving a morning update.`;
+Show me actual tweets if something's popping - quote them with the @handle and engagement if it's notable. Tell me if there's a gap I could fill or a conversation worth joining.
+
+Don't give me everything - just the stuff that actually matters.`;
     }
 
     // Call xAI Grok API with Live Search (search_parameters approach)
@@ -62,13 +57,13 @@ Format as a conversational brief - like you're a smart cultural strategist givin
         ],
         temperature: 0.7,
         max_tokens: 4000,
-        // Live Search API - searches X, news, web automatically
+        // Live Search API - searches X, news, web (US focused)
         search_parameters: {
           mode: 'on',
           sources: [
             { type: 'x' },
-            { type: 'news' },
-            { type: 'web' }
+            { type: 'news', country: 'US' },
+            { type: 'web', country: 'US' }
           ],
           max_search_results: 20,
           return_citations: true
