@@ -94,6 +94,8 @@ Format as a conversational brief - like you're a smart cultural strategist givin
     }
 
     const data = await response.json();
+    console.log('Grok response:', JSON.stringify(data, null, 2));
+
     const briefContent = data.choices?.[0]?.message?.content || 'No response from Grok';
     const citations = data.citations || [];
 
