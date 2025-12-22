@@ -125,9 +125,9 @@ async function analyzeWithClaude(tweet: string, author: string): Promise<{ analy
 
   const client = new Anthropic({ apiKey });
 
-  // Only use Claude 4+ models - no 3.5 fallbacks
-  // Claude model IDs: https://docs.anthropic.com/en/docs/about-claude/models
-  const models = ['claude-sonnet-4-20250514'];
+  // Use Claude Sonnet 4.5 - the best coding model
+  // https://www.anthropic.com/news/claude-sonnet-4-5
+  const models = ['claude-sonnet-4-5-20250929'];
   let lastError: Error | null = null;
 
   for (const model of models) {
