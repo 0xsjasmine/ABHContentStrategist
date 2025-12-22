@@ -2,17 +2,19 @@
 
 import { useState } from 'react';
 import Layout from '@/components/Layout';
-import { DiaryTab, CreatorTab, BooksTab, DataTab, ReplyTab } from '@/components/tabs';
+import { DiaryTab, BooksTab } from '@/components/tabs';
+import PulseTab from '@/components/pulse/PulseTab';
+import VibeTab from '@/components/vibe/VibeTab';
+import StudioTab from '@/components/studio/StudioTab';
 import { GenerationPanel } from '@/components/generation';
 import type { TabId, DiaryEntry } from '@/types';
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<TabId>('diary');
+  const [activeTab, setActiveTab] = useState<TabId>('pulse');
   const [selectedDiaryEntry, setSelectedDiaryEntry] = useState<DiaryEntry | null>(null);
   const [showGeneration, setShowGeneration] = useState(false);
 
   const handleAnalyzeEntry = async (entry: DiaryEntry) => {
-    // For now, just show a notification or trigger analysis
     console.log('Analyzing entry:', entry.id);
   };
 
@@ -29,10 +31,10 @@ export default function Home() {
           onGeneratePost={handleGeneratePost}
         />
       )}
-      {activeTab === 'creator' && <CreatorTab />}
-      {activeTab === 'books' && <BooksTab />}
-      {activeTab === 'data' && <DataTab />}
-      {activeTab === 'reply' && <ReplyTab />}
+      {activeTab === 'pulse' && <PulseTab />}
+      {activeTab === 'vibe' && <VibeTab />}
+      {activeTab === 'studio' && <StudioTab />}
+      {activeTab === 'library' && <BooksTab />}
 
       {/* Generation Panel */}
       {selectedDiaryEntry && (

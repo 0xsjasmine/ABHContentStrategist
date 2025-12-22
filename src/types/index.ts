@@ -233,7 +233,7 @@ export interface GenerationCombination {
 // APP STATE TYPES
 // =====================
 
-export type TabId = 'diary' | 'creator' | 'books' | 'data' | 'reply';
+export type TabId = 'diary' | 'pulse' | 'vibe' | 'studio' | 'library';
 
 export interface AppSettings {
   claudeApiKey?: string;

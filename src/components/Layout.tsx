@@ -5,8 +5,8 @@ import {
   PenSquare,
   Sparkles,
   BookOpen,
-  TrendingUp,
-  MessageCircle,
+  Radio,
+  Edit3,
   Settings,
   X,
 } from 'lucide-react';
@@ -20,10 +20,10 @@ interface LayoutProps {
 
 const tabs = [
   { id: 'diary' as TabId, icon: PenSquare, label: 'Diary' },
-  { id: 'creator' as TabId, icon: Sparkles, label: 'Inspo' },
-  { id: 'books' as TabId, icon: BookOpen, label: 'Library' },
-  { id: 'data' as TabId, icon: TrendingUp, label: 'Trends' },
-  { id: 'reply' as TabId, icon: MessageCircle, label: 'Reply' },
+  { id: 'pulse' as TabId, icon: Radio, label: 'PULSE' },
+  { id: 'vibe' as TabId, icon: Sparkles, label: 'VIBE' },
+  { id: 'studio' as TabId, icon: Edit3, label: 'STUDIO' },
+  { id: 'library' as TabId, icon: BookOpen, label: 'Library' },
 ];
 
 export default function Layout({ children, activeTab, onTabChange }: LayoutProps) {
@@ -45,7 +45,7 @@ export default function Layout({ children, activeTab, onTabChange }: LayoutProps
       >
         {/* Logo / Brand */}
         <div className="mb-8 px-4">
-          <div className="w-8 h-8 rounded-lg bg-[#1A1A1A] flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--burgundy)' }}>
             <span className="text-white text-sm font-semibold">A</span>
           </div>
         </div>
@@ -104,8 +104,8 @@ export default function Layout({ children, activeTab, onTabChange }: LayoutProps
       </nav>
 
       {/* Main Content */}
-      <main className="flex-1 ml-16 min-h-screen">
-        <div className="max-w-4xl mx-auto px-8 py-10">
+      <main className="flex-1 ml-16 min-h-screen" style={{ backgroundColor: 'var(--soft-pink)' }}>
+        <div className="max-w-6xl mx-auto px-8 py-10">
           {children}
         </div>
       </main>
