@@ -23,7 +23,8 @@ import {
   TrendingUp,
   Heart,
   Target,
-  AlertCircle
+  AlertCircle,
+  Zap
 } from 'lucide-react';
 import type { TweetAnalysis, AIAnalysis } from '@/types';
 
@@ -32,6 +33,8 @@ const CLAUDE_INPUT_COST = 0.003 / 1000;  // $3 per 1M input tokens
 const CLAUDE_OUTPUT_COST = 0.015 / 1000; // $15 per 1M output tokens
 const GROK_INPUT_COST = 0.005 / 1000;    // $5 per 1M input tokens (estimated)
 const GROK_OUTPUT_COST = 0.015 / 1000;   // $15 per 1M output tokens (estimated)
+const OPENAI_INPUT_COST = 0.0025 / 1000;  // $2.50 per 1M input tokens (GPT-4o)
+const OPENAI_OUTPUT_COST = 0.01 / 1000;   // $10 per 1M output tokens (GPT-4o)
 
 interface FeatureUsage {
   feature: string;
@@ -43,10 +46,15 @@ interface MonthlyUsage {
   month: string;
   claude: { calls: number; cost: number; tokens: number };
   grok: { calls: number; cost: number; tokens: number };
+  openai: { calls: number; cost: number; tokens: number };
   features: FeatureUsage[];
 }
 
-function updateApiUsage(claudeUsage: { inputTokens: number; outputTokens: number }, grokUsage: { inputTokens: number; outputTokens: number }) {
+function updateApiUsage(
+  claudeUsage: { inputTokens: number; outputTokens: number },
+  grokUsage: { inputTokens: number; outputTokens: number },
+  openaiUsage: { inputTokens: number; outputTokens: number } = { inputTokens: 0, outputTokens: 0 }
+) {
   const now = new Date();
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const storageKey = `abh_api_usage_${currentMonth}`;
@@ -54,14 +62,17 @@ function updateApiUsage(claudeUsage: { inputTokens: number; outputTokens: number
   // Calculate costs
   const claudeTokens = claudeUsage.inputTokens + claudeUsage.outputTokens;
   const grokTokens = grokUsage.inputTokens + grokUsage.outputTokens;
+  const openaiTokens = openaiUsage.inputTokens + openaiUsage.outputTokens;
   const claudeCost = (claudeUsage.inputTokens * CLAUDE_INPUT_COST) + (claudeUsage.outputTokens * CLAUDE_OUTPUT_COST);
   const grokCost = (grokUsage.inputTokens * GROK_INPUT_COST) + (grokUsage.outputTokens * GROK_OUTPUT_COST);
+  const openaiCost = (openaiUsage.inputTokens * OPENAI_INPUT_COST) + (openaiUsage.outputTokens * OPENAI_OUTPUT_COST);
 
   // Get existing or create new - matches ApiUsageModal expected format
   let usage: MonthlyUsage = {
     month: currentMonth,
     claude: { calls: 0, cost: 0, tokens: 0 },
     grok: { calls: 0, cost: 0, tokens: 0 },
+    openai: { calls: 0, cost: 0, tokens: 0 },
     features: [],
   };
 
@@ -69,8 +80,9 @@ function updateApiUsage(claudeUsage: { inputTokens: number; outputTokens: number
     const stored = localStorage.getItem(storageKey);
     if (stored) {
       usage = JSON.parse(stored);
-      // Ensure features array exists
+      // Ensure features array and openai exists
       if (!usage.features) usage.features = [];
+      if (!usage.openai) usage.openai = { calls: 0, cost: 0, tokens: 0 };
     }
   } catch {
     // Use default
@@ -90,8 +102,15 @@ function updateApiUsage(claudeUsage: { inputTokens: number; outputTokens: number
     usage.grok.cost += grokCost;
   }
 
+  // Update OpenAI
+  if (openaiUsage.inputTokens > 0) {
+    usage.openai.calls += 1;
+    usage.openai.tokens += openaiTokens;
+    usage.openai.cost += openaiCost;
+  }
+
   // Update features breakdown
-  const totalCost = claudeCost + grokCost;
+  const totalCost = claudeCost + grokCost + openaiCost;
   const roundtableFeature = usage.features.find(f => f.feature === 'Roundtable');
   if (roundtableFeature) {
     roundtableFeature.calls += 1;
@@ -135,15 +154,20 @@ function SwipeModal({
   onClose: () => void;
 }) {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const slides = ['grok', 'claude', 'compare', 'use'];
+  // Include GPT if openaiAnalysis exists
+  const hasOpenAI = analysis.openaiAnalysis && analysis.openaiAnalysis.curiosityGap.score > 0;
+  const slides = hasOpenAI ? ['grok', 'claude', 'gpt', 'compare', 'use'] : ['grok', 'claude', 'compare', 'use'];
 
   const avgScore = Math.round(
     (analysis.grokAnalysis.curiosityGap.score +
      analysis.claudeAnalysis.curiosityGap.score +
+     (hasOpenAI ? analysis.openaiAnalysis!.curiosityGap.score : 0) +
      analysis.grokAnalysis.predictionViolation.score +
      analysis.claudeAnalysis.predictionViolation.score +
+     (hasOpenAI ? analysis.openaiAnalysis!.predictionViolation.score : 0) +
      analysis.grokAnalysis.habituationBypass.score +
-     analysis.claudeAnalysis.habituationBypass.score) / 6
+     analysis.claudeAnalysis.habituationBypass.score +
+     (hasOpenAI ? analysis.openaiAnalysis!.habituationBypass.score : 0)) / (hasOpenAI ? 9 : 6)
   );
 
   const goNext = () => setCurrentSlide(prev => Math.min(prev + 1, slides.length - 1));
@@ -152,9 +176,11 @@ function SwipeModal({
   const renderSlide = () => {
     switch (slides[currentSlide]) {
       case 'grok':
-        return <AISlide analysis={analysis.grokAnalysis} isGrok={true} />;
+        return <AISlide analysis={analysis.grokAnalysis} aiType="grok" />;
       case 'claude':
-        return <AISlide analysis={analysis.claudeAnalysis} isGrok={false} />;
+        return <AISlide analysis={analysis.claudeAnalysis} aiType="claude" />;
+      case 'gpt':
+        return analysis.openaiAnalysis ? <AISlide analysis={analysis.openaiAnalysis} aiType="gpt" /> : null;
       case 'compare':
         return <CompareSlide analysis={analysis} />;
       case 'use':
@@ -199,6 +225,7 @@ function SwipeModal({
             >
               {slide === 'grok' && <span className="flex items-center gap-1.5"><Radio className="w-4 h-4" /> Grok</span>}
               {slide === 'claude' && <span className="flex items-center gap-1.5"><Sparkles className="w-4 h-4" /> Claude</span>}
+              {slide === 'gpt' && <span className="flex items-center gap-1.5"><Zap className="w-4 h-4" /> GPT</span>}
               {slide === 'compare' && <span className="flex items-center gap-1.5"><Scale className="w-4 h-4" /> Compare</span>}
               {slide === 'use' && <span className="flex items-center gap-1.5"><Wand2 className="w-4 h-4" /> Use This</span>}
             </button>
@@ -254,11 +281,14 @@ function splitIntoBullets(text: string): string[] {
     .filter(s => s.length > 0);
 }
 
-// AI Analysis Slide (Grok or Claude) - Bullet Point Style
-function AISlide({ analysis, isGrok }: { analysis: AIAnalysis; isGrok: boolean }) {
-  const Icon = isGrok ? Radio : Sparkles;
-  const name = isGrok ? "Grok" : "Claude";
-  const subtitle = isGrok ? 'Real-time cultural context' : 'Deep psychological structure';
+// AI Analysis Slide (Grok, Claude, or GPT) - Bullet Point Style
+function AISlide({ analysis, aiType }: { analysis: AIAnalysis; aiType: 'grok' | 'claude' | 'gpt' }) {
+  const configs = {
+    grok: { Icon: Radio, name: "Grok", subtitle: 'Real-time cultural context' },
+    claude: { Icon: Sparkles, name: "Claude", subtitle: 'Deep psychological structure' },
+    gpt: { Icon: Zap, name: "GPT-4o", subtitle: 'Structured pattern analysis' },
+  };
+  const { Icon, name, subtitle } = configs[aiType];
 
   // Calculate average score
   const avgScore = Math.round((analysis.curiosityGap.score + analysis.predictionViolation.score + analysis.habituationBypass.score) / 3);
@@ -900,7 +930,7 @@ export default function RoundtableTab() {
 
       // Track API usage
       if (result.usage) {
-        updateApiUsage(result.usage.claude, result.usage.grok);
+        updateApiUsage(result.usage.claude, result.usage.grok, result.usage.openai);
       }
 
       setAnalyses(prev => [result, ...prev]);

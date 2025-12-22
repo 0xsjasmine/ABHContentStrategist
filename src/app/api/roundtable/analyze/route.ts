@@ -210,6 +210,61 @@ async function analyzeWithGrok(tweet: string, author: string): Promise<{ analysi
   };
 }
 
+async function analyzeWithOpenAI(tweet: string, author: string): Promise<{ analysis: unknown; usage: { inputTokens: number; outputTokens: number } }> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error('OPENAI_API_KEY not configured');
+  }
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You are GPT-4, a powerful language model specializing in content analysis and psychological frameworks. You provide structured, actionable insights.',
+        },
+        {
+          role: 'user',
+          content: `${PSYCHOLOGY_PROMPT}\n\nTWEET by @${author}:\n"${tweet}"`,
+        },
+      ],
+      temperature: 0.7,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`OpenAI API error: ${error}`);
+  }
+
+  const data = await response.json();
+  const content = data.choices[0]?.message?.content;
+
+  if (!content) {
+    throw new Error('No content in OpenAI response');
+  }
+
+  const jsonMatch = content.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error('Could not parse OpenAI response');
+  }
+
+  return {
+    analysis: JSON.parse(jsonMatch[0]),
+    usage: {
+      inputTokens: data.usage?.prompt_tokens || 0,
+      outputTokens: data.usage?.completion_tokens || 0,
+    },
+  };
+}
+
 function generateAgreements(
   claudeAnalysis: Record<string, unknown>,
   grokAnalysis: Record<string, unknown>
@@ -354,10 +409,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Tweet text and author are required' }, { status: 400 });
     }
 
-    // Run both analyses in parallel
-    const [claudeResult, grokResult] = await Promise.allSettled([
+    // Run all three analyses in parallel
+    const [claudeResult, grokResult, openaiResult] = await Promise.allSettled([
       analyzeWithClaude(tweet, handle || author),
       analyzeWithGrok(tweet, handle || author),
+      analyzeWithOpenAI(tweet, handle || author),
     ]);
 
     const defaultAnalysis = {
@@ -383,9 +439,13 @@ export async function POST(request: NextRequest) {
     const grokAnalysis =
       grokResult.status === 'fulfilled' ? grokResult.value.analysis : defaultAnalysis;
 
+    const openaiAnalysis =
+      openaiResult.status === 'fulfilled' ? openaiResult.value.analysis : defaultAnalysis;
+
     // Track usage for cost calculation
     const claudeUsage = claudeResult.status === 'fulfilled' ? claudeResult.value.usage : { inputTokens: 0, outputTokens: 0 };
     const grokUsage = grokResult.status === 'fulfilled' ? grokResult.value.usage : { inputTokens: 0, outputTokens: 0 };
+    const openaiUsage = openaiResult.status === 'fulfilled' ? openaiResult.value.usage : { inputTokens: 0, outputTokens: 0 };
 
     const analysis = {
       id: crypto.randomUUID(),
@@ -406,6 +466,10 @@ export async function POST(request: NextRequest) {
         model: 'claude',
         ...(claudeAnalysis as object),
       },
+      openaiAnalysis: {
+        model: 'openai',
+        ...(openaiAnalysis as object),
+      },
       agreements: {
         points: generateAgreements(
           claudeAnalysis as Record<string, unknown>,
@@ -425,6 +489,7 @@ export async function POST(request: NextRequest) {
       usage: {
         claude: claudeUsage,
         grok: grokUsage,
+        openai: openaiUsage,
       },
     };
 

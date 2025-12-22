@@ -270,7 +270,7 @@ export interface AlignmentScores {
 }
 
 export interface AIAnalysis {
-  model: 'grok' | 'claude';
+  model: 'grok' | 'claude' | 'openai';
   curiosityGap: PsychologyScore;
   predictionViolation: PsychologyScore;
   habituationBypass: PsychologyScore;
@@ -312,6 +312,7 @@ export interface TweetAnalysis {
   };
   grokAnalysis: AIAnalysis;
   claudeAnalysis: AIAnalysis;
+  openaiAnalysis?: AIAnalysis; // Optional for backwards compatibility
   agreements: RoundtableAgreement;
   differences: RoundtableDifference;
   takeaways: ActionableTakeaway[];
