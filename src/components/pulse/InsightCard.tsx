@@ -80,10 +80,9 @@ interface InsightCardProps {
 }
 
 const categoryLabels: Record<ABHCategory, string> = {
+  friendships: 'Friendships',
+  ai: 'AI',
   ambition: 'Ambition',
-  community: 'Community',
-  growth: 'Growth',
-  realness: 'Realness',
   twenties: 'Twenties',
 };
 
@@ -193,27 +192,27 @@ export default function InsightCard({
             Key Takeaways
           </div>
           <div className="space-y-2">
-            {abhScore.ambition > 5 && (
+            {abhScore.friendships > 5 && (
               <div className="flex items-start gap-3">
                 <span className="takeaway-number">1</span>
                 <span className="text-sm text-gray-700">
-                  High ambition relevance ({abhScore.ambition}/10) - relates to career, building, or goals
+                  Strong friendships angle ({abhScore.friendships}/10) - touches on connection and support
                 </span>
               </div>
             )}
-            {abhScore.community > 5 && (
+            {abhScore.ai > 5 && (
               <div className="flex items-start gap-3">
                 <span className="takeaway-number">2</span>
                 <span className="text-sm text-gray-700">
-                  Strong community angle ({abhScore.community}/10) - touches on belonging or support
+                  High AI relevance ({abhScore.ai}/10) - relates to AI, tech, and staying human in the AI era
                 </span>
               </div>
             )}
-            {abhScore.realness > 5 && (
+            {abhScore.ambition > 5 && (
               <div className="flex items-start gap-3">
                 <span className="takeaway-number">3</span>
                 <span className="text-sm text-gray-700">
-                  High realness factor ({abhScore.realness}/10) - authentic and vulnerable content
+                  High ambition factor ({abhScore.ambition}/10) - relates to career, building, or goals
                 </span>
               </div>
             )}

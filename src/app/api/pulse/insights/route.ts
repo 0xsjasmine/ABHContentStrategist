@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') as 'new' | 'reviewed' | 'engaged' | 'dismissed' | null;
-    const category = searchParams.get('category') as 'ambition' | 'community' | 'growth' | 'realness' | 'twenties' | null;
+    const category = searchParams.get('category') as 'friendships' | 'ai' | 'ambition' | 'twenties' | null;
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
 
     const insights = await getPulseInsights({

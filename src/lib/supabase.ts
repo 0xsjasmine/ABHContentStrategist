@@ -113,15 +113,14 @@ export interface PulseInsight {
   id: string;
   headline: string;
   subtitle: string | null;
-  category: 'ambition' | 'community' | 'growth' | 'realness' | 'twenties';
+  category: 'friendships' | 'ai' | 'ambition' | 'twenties';
   urgency: 'high' | 'medium' | 'low';
   summary: string | null;
   why_this_matters: string | null;
   key_insight: string | null;
+  score_friendships: number | null;
+  score_ai: number | null;
   score_ambition: number | null;
-  score_community: number | null;
-  score_growth: number | null;
-  score_realness: number | null;
   score_twenties: number | null;
   score_composite: number | null;
   key_posts: any[] | null;

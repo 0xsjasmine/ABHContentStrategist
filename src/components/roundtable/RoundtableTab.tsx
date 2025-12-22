@@ -449,10 +449,9 @@ function AISlide({ analysis, aiType }: { analysis: AIAnalysis; aiType: 'grok' | 
 
 // ABH Pillars
 const ABH_PILLARS = [
+  { key: 'friendships', label: 'Friendships', icon: Heart, color: 'text-pink-600', bg: 'bg-pink-100' },
+  { key: 'ai', label: 'AI', icon: Zap, color: 'text-blue-600', bg: 'bg-blue-100' },
   { key: 'ambition', label: 'Ambition', icon: Target, color: 'text-purple-600', bg: 'bg-purple-100' },
-  { key: 'community', label: 'Community', icon: Users, color: 'text-blue-600', bg: 'bg-blue-100' },
-  { key: 'growth', label: 'Growth', icon: TrendingUp, color: 'text-green-600', bg: 'bg-green-100' },
-  { key: 'realness', label: 'Realness', icon: Heart, color: 'text-pink-600', bg: 'bg-pink-100' },
   { key: 'twenties', label: 'Twenties', icon: Sparkles, color: 'text-amber-600', bg: 'bg-amber-100' },
 ];
 
@@ -467,11 +466,10 @@ function CompareSlide({ analysis }: { analysis: TweetAnalysis }) {
 
   // Simple pillar scoring based on content themes
   const pillarScores = {
+    friendships: analysis.agreements.points.some(p => p.toLowerCase().includes('permission') || p.toLowerCase().includes('relat') || p.toLowerCase().includes('connect')) ? 8 : 5,
+    ai: analysis.agreements.points.some(p => p.toLowerCase().includes('ai') || p.toLowerCase().includes('tech') || p.toLowerCase().includes('future')) ? 7 : 5,
     ambition: avgScore >= 7 ? 8 : avgScore >= 5 ? 6 : 4,
-    community: analysis.agreements.points.some(p => p.toLowerCase().includes('permission') || p.toLowerCase().includes('relat')) ? 8 : 5,
-    growth: analysis.agreements.points.some(p => p.toLowerCase().includes('learn') || p.toLowerCase().includes('wisdom')) ? 7 : 5,
-    realness: avgScore >= 7 ? 9 : 6, // High engagement usually = realness
-    twenties: analysis.agreements.points.some(p => p.toLowerCase().includes('generation') || p.toLowerCase().includes('ai')) ? 7 : 5,
+    twenties: analysis.agreements.points.some(p => p.toLowerCase().includes('generation') || p.toLowerCase().includes('figur')) ? 7 : 5,
   };
 
   return (

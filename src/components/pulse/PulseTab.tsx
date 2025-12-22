@@ -10,10 +10,9 @@ import { Settings, RefreshCw } from 'lucide-react';
 
 const categoryTabs = [
   { id: 'all', label: 'All' },
+  { id: 'friendships', label: 'Friendships' },
+  { id: 'ai', label: 'AI' },
   { id: 'ambition', label: 'Ambition' },
-  { id: 'community', label: 'Community' },
-  { id: 'growth', label: 'Growth' },
-  { id: 'realness', label: 'Realness' },
   { id: 'twenties', label: 'Twenties' },
 ];
 
@@ -199,15 +198,14 @@ export default function PulseTab() {
           id: generateId(),
           headline: insight.headline || 'New Insight',
           subtitle: insight.subtitle || null,
-          category: (insight.category?.toLowerCase() || 'ambition') as PulseInsight['category'],
+          category: (insight.category?.toLowerCase() || 'friendships') as PulseInsight['category'],
           urgency: insight.urgency || 'medium',
           summary: insight.summary || null,
           why_this_matters: insight.whyThisMattersForABH || null,
           key_insight: insight.keyInsight || null,
+          score_friendships: insight.abhScore?.friendships || 0,
+          score_ai: insight.abhScore?.ai || 0,
           score_ambition: insight.abhScore?.ambition || 0,
-          score_community: insight.abhScore?.community || 0,
-          score_growth: insight.abhScore?.growth || 0,
-          score_realness: insight.abhScore?.realness || 0,
           score_twenties: insight.abhScore?.twenties || 0,
           score_composite: insight.abhScore?.composite || 0,
           key_posts: insight.keyPosts || [],
@@ -246,10 +244,9 @@ export default function PulseTab() {
   // Transform PulseInsight to InsightCard props
   const transformInsight = (insight: PulseInsight) => {
     const abhScore: ABHScore = {
+      friendships: insight.score_friendships || 0,
+      ai: insight.score_ai || 0,
       ambition: insight.score_ambition || 0,
-      community: insight.score_community || 0,
-      growth: insight.score_growth || 0,
-      realness: insight.score_realness || 0,
       twenties: insight.score_twenties || 0,
       composite: insight.score_composite || 0,
     };

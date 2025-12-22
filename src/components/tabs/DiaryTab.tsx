@@ -12,10 +12,9 @@ import type { DiaryEntry, DiaryEntryType } from '@/types';
 
 // ABH Core Pillars - same color for all (outline style)
 const ABH_PILLARS = [
+  { id: 'friendships', label: 'Friendships' },
+  { id: 'ai', label: 'AI' },
   { id: 'ambition', label: 'Ambition' },
-  { id: 'community', label: 'Community' },
-  { id: 'growth', label: 'Growth' },
-  { id: 'realness', label: 'Realness' },
   { id: 'twenties', label: 'Twenties' },
 ] as const;
 
@@ -25,11 +24,10 @@ type PillarId = typeof ABH_PILLARS[number]['id'];
 
 // Map pillars to diary entry types for storage
 const pillarToType: Record<PillarId, DiaryEntryType> = {
+  friendships: 'stories',
+  ai: 'builds',
   ambition: 'takes',
-  community: 'stories',
-  growth: 'builds',
-  realness: 'reflections',
-  twenties: 'stories',
+  twenties: 'reflections',
 };
 
 interface InspoTweet {
@@ -47,7 +45,7 @@ interface DiaryTabProps {
 
 export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
   const [entries, setEntries] = useState<DiaryEntry[]>([]);
-  const [selectedPillar, setSelectedPillar] = useState<PillarId>('ambition');
+  const [selectedPillar, setSelectedPillar] = useState<PillarId>('friendships');
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const [content, setContent] = useState('');
 

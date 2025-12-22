@@ -49,15 +49,14 @@ export interface Database {
           id: string;
           headline: string;
           subtitle: string | null;
-          category: 'ambition' | 'community' | 'growth' | 'realness' | 'twenties' | null;
+          category: 'friendships' | 'ai' | 'ambition' | 'twenties' | null;
           urgency: 'high' | 'medium' | 'low';
           summary: string | null;
           why_this_matters: string | null;
           key_insight: string | null;
+          score_friendships: number | null;
+          score_ai: number | null;
           score_ambition: number | null;
-          score_community: number | null;
-          score_growth: number | null;
-          score_realness: number | null;
           score_twenties: number | null;
           score_composite: number | null;
           key_posts: Json | null;
@@ -73,15 +72,14 @@ export interface Database {
           id?: string;
           headline: string;
           subtitle?: string | null;
-          category?: 'ambition' | 'community' | 'growth' | 'realness' | 'twenties' | null;
+          category?: 'friendships' | 'ai' | 'ambition' | 'twenties' | null;
           urgency?: 'high' | 'medium' | 'low';
           summary?: string | null;
           why_this_matters?: string | null;
           key_insight?: string | null;
+          score_friendships?: number | null;
+          score_ai?: number | null;
           score_ambition?: number | null;
-          score_community?: number | null;
-          score_growth?: number | null;
-          score_realness?: number | null;
           score_twenties?: number | null;
           score_composite?: number | null;
           key_posts?: Json | null;
@@ -97,15 +95,14 @@ export interface Database {
           id?: string;
           headline?: string;
           subtitle?: string | null;
-          category?: 'ambition' | 'community' | 'growth' | 'realness' | 'twenties' | null;
+          category?: 'friendships' | 'ai' | 'ambition' | 'twenties' | null;
           urgency?: 'high' | 'medium' | 'low';
           summary?: string | null;
           why_this_matters?: string | null;
           key_insight?: string | null;
+          score_friendships?: number | null;
+          score_ai?: number | null;
           score_ambition?: number | null;
-          score_community?: number | null;
-          score_growth?: number | null;
-          score_realness?: number | null;
           score_twenties?: number | null;
           score_composite?: number | null;
           key_posts?: Json | null;
@@ -381,15 +378,14 @@ export type DiaryEntry = Database['public']['Tables']['diary_entries']['Row'];
 export type BookQuote = Database['public']['Tables']['book_quotes']['Row'];
 export type SavedFormat = Database['public']['Tables']['saved_formats']['Row'];
 
-// ABH Category type
-export type ABHCategory = 'ambition' | 'community' | 'growth' | 'realness' | 'twenties';
+// ABH Category type (Content Pillars: Friendships, AI, Ambition, Twenties)
+export type ABHCategory = 'friendships' | 'ai' | 'ambition' | 'twenties';
 
 // ABH Score type
 export interface ABHScore {
+  friendships: number;
+  ai: number;
   ambition: number;
-  community: number;
-  growth: number;
-  realness: number;
   twenties: number;
   composite: number;
 }

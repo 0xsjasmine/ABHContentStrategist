@@ -15,48 +15,45 @@ You are the social listening layer for Ambitious But Human (ABH), a community fo
 **YOUR TASK:**
 Scan X/Twitter for recent activity (last 7 days) from these ${handleCount} accounts: ${handleList}
 
-**ABH BRAND PILLARS TO DETECT:**
+**ABH CONTENT PILLARS TO DETECT:**
 
-1. **AMBITION** (We celebrate building, creating, and reaching)
-   - Career wins and professional growth
-   - Building in public, founder journeys
-   - Goal-setting and achievement
-   - Strategic thinking and skill-building
-   - The drive to create something meaningful
-
-2. **COMMUNITY** (We believe your people are your power)
+1. **FRIENDSHIPS** (The power of real connection)
    - Female friendships and support systems
    - Finding your people online and IRL
    - Loneliness epidemic and connection
    - Building belonging, not just networks
    - Celebrating others' wins
+   - Vulnerability in relationships
 
-3. **GROWTH** (We're committed to evolving, not just achieving)
-   - Self-awareness and emotional intelligence
-   - Therapy culture and mental health
-   - Setting boundaries and unlearning
-   - Becoming who you want to be
-   - Inner work alongside outer work
+2. **AI** (Staying human in the AI era)
+   - Adapting to rapid technological change
+   - Leveraging AI tools without losing humanity
+   - Future of work and creativity
+   - Tech careers and building with AI
+   - Balancing efficiency with authenticity
+   - AI's impact on culture and connection
 
-4. **REALNESS** (We show the full picture, not just highlights)
-   - Vulnerability and authenticity
-   - The messy middle of building anything
-   - Failure, pivots, and learning curves
-   - Being imperfect and still worthy
-   - The humanity behind the ambition
+3. **AMBITION** (We celebrate building, creating, and reaching)
+   - Career wins and professional growth
+   - Building in public, founder journeys
+   - Goal-setting and achievement
+   - Strategic thinking and skill-building
+   - The drive to create something meaningful
+   - Chasing dreams unapologetically
 
-5. **TWENTIES** (We're figuring it out together in unprecedented times)
+4. **TWENTIES** (Figuring it out together in unprecedented times)
    - Quarter-life transitions and identity
    - Dating, relationships, life milestones
    - Career pivots and "what am I doing with my life"
-   - Adapting to rapid technological change (AI era)
-   - Staying human while leveraging AI
+   - The messy middle of building anything
+   - Being imperfect and still worthy
+   - Self-discovery and becoming who you want to be
 
 **ANALYZE FOR:**
 - Posts with high engagement that align with ABH pillars
 - Vulnerable/real moments (these are GOLD for ABH)
 - Career wins or pivots worth celebrating or amplifying
-- Hot takes the ABH audience would care about
+- AI and tech takes the ABH audience would care about
 - Moments where ABH could add a unique perspective
 - Cross-account patterns (multiple people discussing same topic)
 - Opportunities to BUILD COMMUNITY through engagement
@@ -78,14 +75,13 @@ Scan X/Twitter for recent activity (last 7 days) from these ${handleCount} accou
     {
       "headline": "Catchy 5-8 word headline",
       "subtitle": "One line explaining why this matters for ABH audience",
-      "category": "Ambition|Community|Growth|Realness|Twenties",
+      "category": "Friendships|AI|Ambition|Twenties",
       "urgency": "high|medium|low",
       "summary": "2-3 sentence summary of what's happening and why it matters",
       "abhScore": {
-        "ambition": 7,
-        "community": 9,
-        "growth": 6,
-        "realness": 8,
+        "friendships": 7,
+        "ai": 6,
+        "ambition": 8,
         "twenties": 5,
         "composite": 7
       },
@@ -101,7 +97,7 @@ Scan X/Twitter for recent activity (last 7 days) from these ${handleCount} accou
           "retweets": 500
         }
       ],
-      "whyThisMattersForABH": "How this connects to ABH mission, audience, or brand pillars",
+      "whyThisMattersForABH": "How this connects to ABH mission, audience, or content pillars",
       "keyInsight": "The quotable takeaway - one sentence that captures the essence",
       "whatToWatchFor": "What to monitor next or emerging patterns",
       "engagementOpportunity": {
@@ -109,7 +105,7 @@ Scan X/Twitter for recent activity (last 7 days) from these ${handleCount} accou
         "suggestedAngle": "Specific approach - your unique take or how to add value",
         "urgency": "high|medium|low"
       },
-      "relatedTopics": ["career pivots", "burnout", "AI tools", "female founders"]
+      "relatedTopics": ["career pivots", "AI tools", "female founders", "quarter-life"]
     }
   ],
   "whatThisMeansForABH": {
@@ -144,16 +140,15 @@ Scan X/Twitter for recent activity (last 7 days) from these ${handleCount} accou
 **SCORING GUIDELINES:**
 
 Score each insight 0-10 on each pillar based on:
+- **Friendships**: Does it touch on connection, support, belonging, relationships?
+- **AI**: Does it involve technology, AI tools, future of work, staying human in tech era?
 - **Ambition**: Does it relate to career, building, goals, professional growth?
-- **Community**: Does it touch on belonging, friendships, support, togetherness?
-- **Growth**: Does it involve self-development, therapy, boundaries, evolving?
-- **Realness**: Is there vulnerability, authenticity, messy truth, humanity?
-- **Twenties**: Is it about quarter-life struggles, AI era, figuring it out?
+- **Twenties**: Is it about quarter-life struggles, figuring it out, self-discovery?
 
-Composite = weighted average (can weight Realness and Community slightly higher - that's ABH's sweet spot)
+Composite = weighted average (can weight Friendships and Twenties slightly higher - that's ABH's sweet spot)
 
 **RULES:**
-- Prioritize REALNESS and VULNERABILITY - that's what ABH thrives on
+- Prioritize VULNERABILITY and AUTHENTICITY - that's what ABH thrives on
 - Include actual tweet text and URLs when possible
 - Only include insights scoring 5+ on ABH relevance (composite)
 - Note connections between accounts (are they interacting? Could you bridge them?)
