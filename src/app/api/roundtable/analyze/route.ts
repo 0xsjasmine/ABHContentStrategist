@@ -117,7 +117,7 @@ Respond in this exact JSON format:
   }
 }`;
 
-async function analyzeWithClaude(tweet: string, author: string): Promise<unknown> {
+async function analyzeWithClaude(tweet: string, author: string): Promise<{ analysis: unknown; usage: { inputTokens: number; outputTokens: number } }> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     throw new Error('ANTHROPIC_API_KEY not configured');
@@ -146,10 +146,16 @@ async function analyzeWithClaude(tweet: string, author: string): Promise<unknown
     throw new Error('Could not parse Claude response');
   }
 
-  return JSON.parse(jsonMatch[0]);
+  return {
+    analysis: JSON.parse(jsonMatch[0]),
+    usage: {
+      inputTokens: response.usage?.input_tokens || 0,
+      outputTokens: response.usage?.output_tokens || 0,
+    },
+  };
 }
 
-async function analyzeWithGrok(tweet: string, author: string): Promise<unknown> {
+async function analyzeWithGrok(tweet: string, author: string): Promise<{ analysis: unknown; usage: { inputTokens: number; outputTokens: number } }> {
   const apiKey = process.env.XAI_API_KEY;
   if (!apiKey) {
     throw new Error('XAI_API_KEY not configured');
@@ -195,7 +201,13 @@ async function analyzeWithGrok(tweet: string, author: string): Promise<unknown> 
     throw new Error('Could not parse Grok response');
   }
 
-  return JSON.parse(jsonMatch[0]);
+  return {
+    analysis: JSON.parse(jsonMatch[0]),
+    usage: {
+      inputTokens: data.usage?.prompt_tokens || 0,
+      outputTokens: data.usage?.completion_tokens || 0,
+    },
+  };
 }
 
 function generateAgreements(
@@ -364,10 +376,14 @@ export async function POST(request: NextRequest) {
     };
 
     const claudeAnalysis =
-      claudeResult.status === 'fulfilled' ? claudeResult.value : defaultAnalysis;
+      claudeResult.status === 'fulfilled' ? claudeResult.value.analysis : defaultAnalysis;
 
     const grokAnalysis =
-      grokResult.status === 'fulfilled' ? grokResult.value : defaultAnalysis;
+      grokResult.status === 'fulfilled' ? grokResult.value.analysis : defaultAnalysis;
+
+    // Track usage for cost calculation
+    const claudeUsage = claudeResult.status === 'fulfilled' ? claudeResult.value.usage : { inputTokens: 0, outputTokens: 0 };
+    const grokUsage = grokResult.status === 'fulfilled' ? grokResult.value.usage : { inputTokens: 0, outputTokens: 0 };
 
     const analysis = {
       id: crypto.randomUUID(),
@@ -403,6 +419,10 @@ export async function POST(request: NextRequest) {
         grokAnalysis as Record<string, unknown>
       ),
       analyzedAt: new Date().toISOString(),
+      usage: {
+        claude: claudeUsage,
+        grok: grokUsage,
+      },
     };
 
     return NextResponse.json(analysis);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Plus,
   Link2,
@@ -9,38 +9,89 @@ import {
   Lightbulb,
   CheckCircle2,
   ArrowRight,
+  ArrowLeft,
   Loader2,
-  Heart,
-  MessageCircle,
-  Repeat2,
   X,
-  ExternalLink,
   ChevronDown,
   ChevronUp,
-  Wand2
+  Wand2,
+  Scale
 } from 'lucide-react';
 import type { TweetAnalysis, AIAnalysis } from '@/types';
 
-// Status tags for analyzed tweets
-const STATUS_TAGS = [
-  { label: 'Decoded', color: 'bg-purple-500' },
-  { label: 'Dissected', color: 'bg-blue-500' },
-  { label: 'Cracked', color: 'bg-green-500' },
-  { label: 'Unpacked', color: 'bg-orange-500' },
-  { label: 'In Session', color: 'bg-pink-500' },
-];
+// Cost per token (approximate)
+const CLAUDE_INPUT_COST = 0.003 / 1000;  // $3 per 1M input tokens
+const CLAUDE_OUTPUT_COST = 0.015 / 1000; // $15 per 1M output tokens
+const GROK_INPUT_COST = 0.005 / 1000;    // $5 per 1M input tokens (estimated)
+const GROK_OUTPUT_COST = 0.015 / 1000;   // $15 per 1M output tokens (estimated)
 
-function getRandomTag() {
-  return STATUS_TAGS[Math.floor(Math.random() * STATUS_TAGS.length)];
+function updateApiUsage(claudeUsage: { inputTokens: number; outputTokens: number }, grokUsage: { inputTokens: number; outputTokens: number }) {
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const storageKey = `abh_api_usage_${currentMonth}`;
+
+  // Calculate costs
+  const claudeCost = (claudeUsage.inputTokens * CLAUDE_INPUT_COST) + (claudeUsage.outputTokens * CLAUDE_OUTPUT_COST);
+  const grokCost = (grokUsage.inputTokens * GROK_INPUT_COST) + (grokUsage.outputTokens * GROK_OUTPUT_COST);
+
+  // Get existing or create new
+  let usage = {
+    claude: { calls: 0, inputTokens: 0, outputTokens: 0, cost: 0, byFeature: { roundtable: { calls: 0, cost: 0 } } },
+    grok: { calls: 0, inputTokens: 0, outputTokens: 0, cost: 0, byFeature: { roundtable: { calls: 0, cost: 0 } } },
+  };
+
+  try {
+    const stored = localStorage.getItem(storageKey);
+    if (stored) {
+      usage = JSON.parse(stored);
+      // Ensure byFeature exists
+      if (!usage.claude.byFeature) usage.claude.byFeature = { roundtable: { calls: 0, cost: 0 } };
+      if (!usage.grok.byFeature) usage.grok.byFeature = { roundtable: { calls: 0, cost: 0 } };
+      if (!usage.claude.byFeature.roundtable) usage.claude.byFeature.roundtable = { calls: 0, cost: 0 };
+      if (!usage.grok.byFeature.roundtable) usage.grok.byFeature.roundtable = { calls: 0, cost: 0 };
+    }
+  } catch {
+    // Use default
+  }
+
+  // Update Claude
+  if (claudeUsage.inputTokens > 0) {
+    usage.claude.calls += 1;
+    usage.claude.inputTokens += claudeUsage.inputTokens;
+    usage.claude.outputTokens += claudeUsage.outputTokens;
+    usage.claude.cost += claudeCost;
+    usage.claude.byFeature.roundtable.calls += 1;
+    usage.claude.byFeature.roundtable.cost += claudeCost;
+  }
+
+  // Update Grok
+  if (grokUsage.inputTokens > 0) {
+    usage.grok.calls += 1;
+    usage.grok.inputTokens += grokUsage.inputTokens;
+    usage.grok.outputTokens += grokUsage.outputTokens;
+    usage.grok.cost += grokCost;
+    usage.grok.byFeature.roundtable.calls += 1;
+    usage.grok.byFeature.roundtable.cost += grokCost;
+  }
+
+  localStorage.setItem(storageKey, JSON.stringify(usage));
 }
 
-function ScoreBadge({ score }: { score: number }) {
+function ScoreBadge({ score, size = 'sm' }: { score: number; size?: 'sm' | 'lg' }) {
   const getColor = (s: number) => {
     if (s >= 8) return 'bg-green-100 text-green-700 border-green-200';
     if (s >= 6) return 'bg-yellow-100 text-yellow-700 border-yellow-200';
     if (s >= 4) return 'bg-orange-100 text-orange-700 border-orange-200';
     return 'bg-gray-100 text-gray-600 border-gray-200';
   };
+
+  if (size === 'lg') {
+    return (
+      <div className={`inline-flex items-center justify-center w-14 h-14 rounded-xl border-2 ${getColor(score)}`}>
+        <span className="text-xl font-bold">{score}/10</span>
+      </div>
+    );
+  }
 
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-md border text-xs font-bold ${getColor(score)}`}>
@@ -49,42 +100,167 @@ function ScoreBadge({ score }: { score: number }) {
   );
 }
 
-function AIAnalysisSection({ analysis, isGrok }: { analysis: AIAnalysis; isGrok: boolean }) {
-  const Icon = isGrok ? Radio : Sparkles;
-  const name = isGrok ? "Grok" : "Claude";
-  const color = isGrok ? 'text-blue-600 bg-blue-50' : 'text-[#C41E3A] bg-red-50';
+// Swipeable Analysis Modal
+function SwipeModal({
+  analysis,
+  onClose
+}: {
+  analysis: TweetAnalysis;
+  onClose: () => void;
+}) {
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const slides = ['grok', 'claude', 'compare', 'use'];
+
+  const avgScore = Math.round(
+    (analysis.grokAnalysis.curiosityGap.score +
+     analysis.claudeAnalysis.curiosityGap.score +
+     analysis.grokAnalysis.predictionViolation.score +
+     analysis.claudeAnalysis.predictionViolation.score +
+     analysis.grokAnalysis.habituationBypass.score +
+     analysis.claudeAnalysis.habituationBypass.score) / 6
+  );
+
+  const goNext = () => setCurrentSlide(prev => Math.min(prev + 1, slides.length - 1));
+  const goPrev = () => setCurrentSlide(prev => Math.max(prev - 1, 0));
+
+  const renderSlide = () => {
+    switch (slides[currentSlide]) {
+      case 'grok':
+        return <AISlide analysis={analysis.grokAnalysis} isGrok={true} />;
+      case 'claude':
+        return <AISlide analysis={analysis.claudeAnalysis} isGrok={false} />;
+      case 'compare':
+        return <CompareSlide analysis={analysis} />;
+      case 'use':
+        return <UseSlide analysis={analysis} />;
+      default:
+        return null;
+    }
+  };
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center gap-2">
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${color}`}>
-          <Icon className="w-4 h-4" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-[#EEE] bg-gradient-to-r from-[#FFF5F5] to-white">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <ScoreBadge score={avgScore} size="lg" />
+              <div>
+                <h2 className="font-semibold text-[#1A1A1A]">{analysis.tweet.author}</h2>
+                <p className="text-sm text-[#999]">@{analysis.tweet.handle}</p>
+              </div>
+            </div>
+            <button onClick={onClose} className="p-2 hover:bg-[#F5F5F5] rounded-lg transition-colors">
+              <X className="w-5 h-5 text-[#999]" />
+            </button>
+          </div>
+
+          {/* Tweet Preview */}
+          <p className="text-sm text-[#666] line-clamp-2">{analysis.tweet.text}</p>
         </div>
-        <span className="font-semibold text-[#1A1A1A]">{name}</span>
+
+        {/* Slide Indicators */}
+        <div className="flex items-center justify-center gap-2 py-3 bg-[#FAFAFA] border-b border-[#EEE]">
+          {slides.map((slide, i) => (
+            <button
+              key={slide}
+              onClick={() => setCurrentSlide(i)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                currentSlide === i
+                  ? 'bg-[#C41E3A] text-white'
+                  : 'text-[#666] hover:bg-[#EEE]'
+              }`}
+            >
+              {slide === 'grok' && <span className="flex items-center gap-1.5"><Radio className="w-4 h-4" /> Grok</span>}
+              {slide === 'claude' && <span className="flex items-center gap-1.5"><Sparkles className="w-4 h-4" /> Claude</span>}
+              {slide === 'compare' && <span className="flex items-center gap-1.5"><Scale className="w-4 h-4" /> Compare</span>}
+              {slide === 'use' && <span className="flex items-center gap-1.5"><Wand2 className="w-4 h-4" /> Use This</span>}
+            </button>
+          ))}
+        </div>
+
+        {/* Slide Content */}
+        <div className="flex-1 overflow-y-auto p-6">
+          {renderSlide()}
+        </div>
+
+        {/* Navigation Arrows */}
+        <div className="px-6 py-4 bg-[#FAFAFA] border-t border-[#EEE] flex items-center justify-between">
+          <button
+            onClick={goPrev}
+            disabled={currentSlide === 0}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#666] hover:text-[#1A1A1A] disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Previous
+          </button>
+          <div className="flex gap-1">
+            {slides.map((_, i) => (
+              <div
+                key={i}
+                className={`w-2 h-2 rounded-full transition-colors ${
+                  currentSlide === i ? 'bg-[#C41E3A]' : 'bg-[#DDD]'
+                }`}
+              />
+            ))}
+          </div>
+          <button
+            onClick={goNext}
+            disabled={currentSlide === slides.length - 1}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#666] hover:text-[#1A1A1A] disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            Next
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// AI Analysis Slide (Grok or Claude)
+function AISlide({ analysis, isGrok }: { analysis: AIAnalysis; isGrok: boolean }) {
+  const Icon = isGrok ? Radio : Sparkles;
+  const name = isGrok ? "Grok" : "Claude";
+  const color = isGrok ? 'text-blue-600 bg-blue-50 border-blue-200' : 'text-[#C41E3A] bg-red-50 border-red-200';
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className={`w-12 h-12 rounded-xl flex items-center justify-center border ${color}`}>
+          <Icon className="w-6 h-6" />
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold text-[#1A1A1A]">{name}&apos;s Analysis</h3>
+          <p className="text-sm text-[#666]">{isGrok ? 'Real-time cultural context' : 'Deep psychological structure'}</p>
+        </div>
       </div>
 
       {/* Scores */}
-      <div className="space-y-3">
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-sm font-medium text-[#1A1A1A]">Curiosity Gap</span>
+      <div className="space-y-4">
+        <div className="bg-[#FAFAFA] rounded-xl p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="font-medium text-[#1A1A1A]">Curiosity Gap</span>
             <ScoreBadge score={analysis.curiosityGap.score} />
           </div>
           <p className="text-sm text-[#666]">{analysis.curiosityGap.analysis}</p>
         </div>
 
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-sm font-medium text-[#1A1A1A]">Prediction Violation</span>
+        <div className="bg-[#FAFAFA] rounded-xl p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="font-medium text-[#1A1A1A]">Prediction Violation</span>
             <ScoreBadge score={analysis.predictionViolation.score} />
           </div>
           <p className="text-sm text-[#666]">{analysis.predictionViolation.analysis}</p>
         </div>
 
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-sm font-medium text-[#1A1A1A]">Habituation Bypass</span>
+        <div className="bg-[#FAFAFA] rounded-xl p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="font-medium text-[#1A1A1A]">Habituation Bypass</span>
             <ScoreBadge score={analysis.habituationBypass.score} />
           </div>
           <p className="text-sm text-[#666]">{analysis.habituationBypass.analysis}</p>
@@ -92,26 +268,143 @@ function AIAnalysisSection({ analysis, isGrok }: { analysis: AIAnalysis; isGrok:
       </div>
 
       {/* Key Insight */}
-      <div className="pt-3 border-t border-[#EEE]">
-        <div className="flex items-start gap-2">
-          <Lightbulb className="w-4 h-4 text-yellow-500 mt-0.5" />
-          <p className="text-sm text-[#666]">{analysis.keyInsight}</p>
+      <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-xl p-4">
+        <div className="flex items-start gap-3">
+          <Lightbulb className="w-5 h-5 text-yellow-600 mt-0.5" />
+          <div>
+            <h4 className="font-medium text-[#1A1A1A] mb-1">{name}&apos;s Key Insight</h4>
+            <p className="text-sm text-[#666]">{analysis.keyInsight}</p>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-// Tweet Card Component
+// Compare Slide
+function CompareSlide({ analysis }: { analysis: TweetAnalysis }) {
+  return (
+    <div className="space-y-6">
+      {/* Where They Agree */}
+      <div className="bg-green-50 border border-green-200 rounded-xl p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <CheckCircle2 className="w-5 h-5 text-green-600" />
+          <h3 className="font-semibold text-green-900">Where They Agree</h3>
+        </div>
+        <ul className="space-y-3">
+          {analysis.agreements.points.map((point, i) => (
+            <li key={i} className="flex items-start gap-3">
+              <span className="flex-shrink-0 w-6 h-6 bg-green-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                {i + 1}
+              </span>
+              <span className="text-sm text-green-800">{point}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Where They Differ */}
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <Scale className="w-5 h-5 text-blue-600" />
+          <h3 className="font-semibold text-blue-900">Where They Differ</h3>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-white rounded-lg p-4 border border-blue-100">
+            <div className="flex items-center gap-2 mb-2">
+              <Radio className="w-4 h-4 text-blue-600" />
+              <span className="text-sm font-medium text-blue-900">Grok&apos;s Focus</span>
+            </div>
+            <p className="text-sm text-blue-800">{analysis.differences.grokFocus}</p>
+          </div>
+          <div className="bg-white rounded-lg p-4 border border-blue-100">
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="w-4 h-4 text-[#C41E3A]" />
+              <span className="text-sm font-medium text-blue-900">Claude&apos;s Focus</span>
+            </div>
+            <p className="text-sm text-blue-800">{analysis.differences.claudeFocus}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Score Comparison */}
+      <div className="bg-[#FAFAFA] rounded-xl p-5">
+        <h3 className="font-semibold text-[#1A1A1A] mb-4">Score Comparison</h3>
+        <div className="space-y-3">
+          {['curiosityGap', 'predictionViolation', 'habituationBypass'].map((metric) => {
+            const grokScore = analysis.grokAnalysis[metric as keyof AIAnalysis] as { score: number };
+            const claudeScore = analysis.claudeAnalysis[metric as keyof AIAnalysis] as { score: number };
+            const label = metric === 'curiosityGap' ? 'Curiosity Gap' :
+                         metric === 'predictionViolation' ? 'Prediction Violation' : 'Habituation Bypass';
+            return (
+              <div key={metric} className="flex items-center justify-between">
+                <span className="text-sm text-[#666]">{label}</span>
+                <div className="flex items-center gap-4">
+                  <span className="text-sm"><Radio className="w-3 h-3 inline mr-1 text-blue-600" />{grokScore.score}</span>
+                  <span className="text-sm"><Sparkles className="w-3 h-3 inline mr-1 text-[#C41E3A]" />{claudeScore.score}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Use This Slide
+function UseSlide({ analysis }: { analysis: TweetAnalysis }) {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-3 mb-2">
+        <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-[#C41E3A]/10 border border-[#C41E3A]/20">
+          <Wand2 className="w-6 h-6 text-[#C41E3A]" />
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold text-[#1A1A1A]">How You Can Use This</h3>
+          <p className="text-sm text-[#666]">Actionable takeaways for your content</p>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        {analysis.takeaways.map((takeaway, i) => (
+          <div key={i} className="bg-gradient-to-r from-[#FFF5F5] to-white border border-[#C41E3A]/20 rounded-xl p-5">
+            <div className="flex items-start gap-4">
+              <span className="flex-shrink-0 w-8 h-8 bg-[#C41E3A] text-white rounded-full flex items-center justify-center text-sm font-bold">
+                {i + 1}
+              </span>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs font-medium text-[#C41E3A] uppercase tracking-wide">{takeaway.category}</span>
+                </div>
+                <h4 className="font-semibold text-[#1A1A1A] mb-1">{takeaway.title}</h4>
+                <p className="text-sm text-[#666] mb-3">{takeaway.description}</p>
+                <div className="bg-white rounded-lg p-3 border border-[#EEE]">
+                  <p className="text-sm text-[#C41E3A] italic">&quot;{takeaway.example}&quot;</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Tweet Card with Embed
 function TweetCard({
   analysis,
-  tag,
   onClick
 }: {
   analysis: TweetAnalysis;
-  tag: { label: string; color: string };
   onClick: () => void;
 }) {
+  const embedRef = useRef<HTMLDivElement>(null);
+  const [embedLoaded, setEmbedLoaded] = useState(false);
+
+  // Get first takeaway as the tag
+  const takeawayTag = analysis.takeaways[0]?.title || 'Analyzed';
+
   const avgScore = Math.round(
     (analysis.grokAnalysis.curiosityGap.score +
      analysis.claudeAnalysis.curiosityGap.score +
@@ -119,46 +412,36 @@ function TweetCard({
      analysis.claudeAnalysis.predictionViolation.score) / 4
   );
 
+  // Load Twitter widget for embed
+  useEffect(() => {
+    if (embedRef.current && (window as unknown as { twttr?: { widgets?: { load?: (el: HTMLElement) => void } } }).twttr?.widgets?.load) {
+      (window as unknown as { twttr: { widgets: { load: (el: HTMLElement) => void } } }).twttr.widgets.load(embedRef.current);
+      setEmbedLoaded(true);
+    }
+  }, []);
+
   return (
     <button
       onClick={onClick}
-      className="text-left bg-white border border-[#EEE] rounded-2xl overflow-hidden hover:shadow-lg hover:border-[#C41E3A]/30 transition-all duration-200 group"
+      className="text-left bg-white border border-[#EEE] rounded-2xl overflow-hidden hover:shadow-lg hover:border-[#C41E3A]/30 transition-all duration-200 group w-full"
     >
-      {/* Tweet Content */}
-      <div className="p-5 pb-4">
-        {/* Status Tag */}
-        <div className="flex items-center justify-between mb-3">
-          <span className={`px-3 py-1 ${tag.color} text-white text-xs font-medium rounded-full`}>
-            {tag.label}
+      {/* Tag & Score */}
+      <div className="px-5 pt-5 pb-3">
+        <div className="flex items-start justify-between gap-2">
+          <span className="px-3 py-1.5 bg-[#C41E3A] text-white text-xs font-medium rounded-full line-clamp-1">
+            {takeawayTag}
           </span>
-          <div className="flex items-center gap-1 text-xs text-[#999]">
-            <span className="font-medium">{avgScore}/10</span>
-            <span>avg</span>
+          <div className="flex items-center gap-1 text-xs text-[#999] whitespace-nowrap">
+            <span className="font-semibold text-[#1A1A1A]">{avgScore}/10</span>
           </div>
         </div>
+      </div>
 
-        {/* Tweet Text */}
-        <p className="text-[#1A1A1A] text-sm leading-relaxed line-clamp-4 mb-3">
+      {/* Tweet Text Preview */}
+      <div className="px-5 pb-4">
+        <p className="text-[#1A1A1A] text-sm leading-relaxed line-clamp-4">
           {analysis.tweet.text}
         </p>
-
-        {/* Engagement */}
-        {(analysis.tweet.engagement.likes > 0 || analysis.tweet.engagement.replies > 0) && (
-          <div className="flex items-center gap-3 text-xs text-[#999] mb-3">
-            {analysis.tweet.engagement.likes > 0 && (
-              <span className="flex items-center gap-1">
-                <Heart className="w-3 h-3" />
-                {analysis.tweet.engagement.likes.toLocaleString()}
-              </span>
-            )}
-            {analysis.tweet.engagement.replies > 0 && (
-              <span className="flex items-center gap-1">
-                <MessageCircle className="w-3 h-3" />
-                {analysis.tweet.engagement.replies.toLocaleString()}
-              </span>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Author Footer */}
@@ -304,153 +587,10 @@ function AddTweetModal({
   );
 }
 
-// Full Analysis Modal
-function AnalysisModal({
-  analysis,
-  tag,
-  onClose
-}: {
-  analysis: TweetAnalysis;
-  tag: { label: string; color: string };
-  onClose: () => void;
-}) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
-
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#EEE] bg-[#FAFAFA]">
-          <div className="flex items-center gap-3">
-            <span className={`px-3 py-1 ${tag.color} text-white text-xs font-medium rounded-full`}>
-              {tag.label}
-            </span>
-            <span className="text-[#1A1A1A] font-semibold">{analysis.tweet.author}</span>
-            <span className="text-[#999] text-sm">@{analysis.tweet.handle}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            {analysis.tweet.url && (
-              <a
-                href={analysis.tweet.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-2 hover:bg-white rounded-lg transition-colors text-[#666] hover:text-[#1A1A1A]"
-              >
-                <ExternalLink className="w-5 h-5" />
-              </a>
-            )}
-            <button onClick={onClose} className="p-2 hover:bg-white rounded-lg transition-colors">
-              <X className="w-5 h-5 text-[#999]" />
-            </button>
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Tweet */}
-          <div className="bg-[#FAFAFA] border border-[#EEE] rounded-xl p-5">
-            <p className="text-lg text-[#1A1A1A] leading-relaxed">{analysis.tweet.text}</p>
-            {(analysis.tweet.engagement.likes > 0) && (
-              <div className="flex items-center gap-4 mt-4 pt-4 border-t border-[#EEE] text-sm text-[#666]">
-                <span className="flex items-center gap-1.5">
-                  <Heart className="w-4 h-4 text-pink-500" />
-                  {analysis.tweet.engagement.likes.toLocaleString()}
-                </span>
-                {analysis.tweet.engagement.replies > 0 && (
-                  <span className="flex items-center gap-1.5">
-                    <MessageCircle className="w-4 h-4 text-blue-500" />
-                    {analysis.tweet.engagement.replies.toLocaleString()}
-                  </span>
-                )}
-                {analysis.tweet.engagement.retweets > 0 && (
-                  <span className="flex items-center gap-1.5">
-                    <Repeat2 className="w-4 h-4 text-green-500" />
-                    {analysis.tweet.engagement.retweets.toLocaleString()}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* AI Analyses */}
-          <div className="grid grid-cols-2 gap-6">
-            <div className="bg-white border border-[#EEE] rounded-xl p-5">
-              <AIAnalysisSection analysis={analysis.grokAnalysis} isGrok={true} />
-            </div>
-            <div className="bg-white border border-[#EEE] rounded-xl p-5">
-              <AIAnalysisSection analysis={analysis.claudeAnalysis} isGrok={false} />
-            </div>
-          </div>
-
-          {/* Agreements & Differences */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-green-50 border border-green-200 rounded-xl p-5">
-              <div className="flex items-center gap-2 mb-3">
-                <CheckCircle2 className="w-5 h-5 text-green-600" />
-                <h3 className="font-semibold text-green-900">Where They Agree</h3>
-              </div>
-              <ul className="space-y-2">
-                {analysis.agreements.points.map((point, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-green-800">
-                    <span className="text-green-500 mt-1">•</span>
-                    {point}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-5">
-              <div className="flex items-center gap-2 mb-3">
-                <ArrowRight className="w-5 h-5 text-blue-600" />
-                <h3 className="font-semibold text-blue-900">Where They Differ</h3>
-              </div>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-xs font-medium text-blue-600 mb-1">Grok:</p>
-                  <p className="text-sm text-blue-800">{analysis.differences.grokFocus}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-blue-600 mb-1">Claude:</p>
-                  <p className="text-sm text-blue-800">{analysis.differences.claudeFocus}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Takeaways */}
-          <div className="bg-white border border-[#EEE] rounded-xl p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <Wand2 className="w-5 h-5 text-[#C41E3A]" />
-              <h3 className="font-semibold text-[#1A1A1A]">How You Can Use This</h3>
-            </div>
-            <div className="space-y-3">
-              {analysis.takeaways.map((takeaway, i) => (
-                <div key={i} className="flex items-start gap-3">
-                  <span className="flex-shrink-0 w-6 h-6 bg-[#C41E3A] text-white rounded-full flex items-center justify-center text-xs font-bold">
-                    {i + 1}
-                  </span>
-                  <div>
-                    <p className="font-medium text-[#1A1A1A]">
-                      <span className="uppercase text-xs text-[#999] mr-2">{takeaway.category}:</span>
-                      {takeaway.title}
-                    </p>
-                    <p className="text-sm text-[#666] mt-0.5">{takeaway.description}</p>
-                    <p className="text-sm text-[#C41E3A] mt-1 italic">"{takeaway.example}"</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function RoundtableTab() {
-  const [analyses, setAnalyses] = useState<Array<TweetAnalysis & { tag: { label: string; color: string } }>>([]);
+  const [analyses, setAnalyses] = useState<TweetAnalysis[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedAnalysis, setSelectedAnalysis] = useState<(TweetAnalysis & { tag: { label: string; color: string } }) | null>(null);
+  const [selectedAnalysis, setSelectedAnalysis] = useState<TweetAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState('');
 
@@ -498,9 +638,12 @@ export default function RoundtableTab() {
         throw new Error(result.error || 'Analysis failed');
       }
 
-      // Add with random tag
-      const newAnalysis = { ...result, tag: getRandomTag() };
-      setAnalyses(prev => [newAnalysis, ...prev]);
+      // Track API usage
+      if (result.usage) {
+        updateApiUsage(result.usage.claude, result.usage.grok);
+      }
+
+      setAnalyses(prev => [result, ...prev]);
       setShowAddModal(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Analysis failed');
@@ -537,7 +680,6 @@ export default function RoundtableTab() {
             <TweetCard
               key={analysis.id}
               analysis={analysis}
-              tag={analysis.tag}
               onClick={() => setSelectedAnalysis(analysis)}
             />
           ))}
@@ -552,11 +694,10 @@ export default function RoundtableTab() {
         isAnalyzing={isAnalyzing}
       />
 
-      {/* Analysis Detail Modal */}
+      {/* Swipe Analysis Modal */}
       {selectedAnalysis && (
-        <AnalysisModal
+        <SwipeModal
           analysis={selectedAnalysis}
-          tag={selectedAnalysis.tag}
           onClose={() => setSelectedAnalysis(null)}
         />
       )}
