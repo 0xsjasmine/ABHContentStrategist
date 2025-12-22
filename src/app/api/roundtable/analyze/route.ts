@@ -119,6 +119,14 @@ Respond in this exact JSON format:
 
 async function analyzeWithClaude(tweet: string, author: string): Promise<{ analysis: unknown; usage: { inputTokens: number; outputTokens: number } }> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
+
+  // Debug: Check if API key is loaded (only show first/last few chars for security)
+  if (apiKey) {
+    console.log(`[Claude] API key loaded: ${apiKey.slice(0, 10)}...${apiKey.slice(-4)} (length: ${apiKey.length})`);
+  } else {
+    console.log('[Claude] WARNING: No API key found!');
+  }
+
   if (!apiKey) {
     throw new Error('ANTHROPIC_API_KEY not configured');
   }
