@@ -806,15 +806,19 @@ interface UrlQueueItem {
   error?: string;
 }
 
-// Right Side Panel for adding multiple tweets
+// Collapsible side panel for adding tweets
 function AddTweetsPanel({
   onAnalyzeComplete,
   analysisQueue,
   setAnalysisQueue,
+  isOpen,
+  onToggle,
 }: {
   onAnalyzeComplete: (result: TweetAnalysis) => void;
   analysisQueue: UrlQueueItem[];
   setAnalysisQueue: React.Dispatch<React.SetStateAction<UrlQueueItem[]>>;
+  isOpen: boolean;
+  onToggle: () => void;
 }) {
   const [urlInput, setUrlInput] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -831,14 +835,11 @@ function AddTweetsPanel({
     const urls = parseUrls(urlInput);
     if (urls.length === 0) return;
 
-    // Initialize queue
     const queue: UrlQueueItem[] = urls.map(url => ({ url, status: 'pending' }));
     setAnalysisQueue(queue);
     setIsAnalyzing(true);
 
-    // Process each URL
     for (let i = 0; i < queue.length; i++) {
-      // Update status to analyzing
       setAnalysisQueue(prev => prev.map((item, idx) =>
         idx === i ? { ...item, status: 'analyzing' } : item
       ));
@@ -856,20 +857,16 @@ function AddTweetsPanel({
           throw new Error(result.error || 'Analysis failed');
         }
 
-        // Track API usage
         if (result.usage) {
           updateApiUsage(result.usage.claude, result.usage.grok, result.usage.openai);
         }
 
-        // Add to analyses
         onAnalyzeComplete(result);
 
-        // Update status to done
         setAnalysisQueue(prev => prev.map((item, idx) =>
           idx === i ? { ...item, status: 'done' } : item
         ));
       } catch (err) {
-        // Update status to error
         setAnalysisQueue(prev => prev.map((item, idx) =>
           idx === i ? { ...item, status: 'error', error: err instanceof Error ? err.message : 'Failed' } : item
         ));
@@ -885,83 +882,87 @@ function AddTweetsPanel({
   const errorCount = analysisQueue.filter(q => q.status === 'error').length;
 
   return (
-    <div className="bg-white border border-[#EEE] rounded-2xl p-5 h-fit sticky top-6">
-      <h3 className="text-lg font-semibold text-[#1A1A1A] mb-4 flex items-center gap-2">
-        <Plus className="w-5 h-5 text-[#C41E3A]" />
-        Add Tweets
-      </h3>
-
-      {/* URL Input */}
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-[#666] mb-2">
-          Paste tweet URLs (one per line)
-        </label>
-        <textarea
-          value={urlInput}
-          onChange={(e) => setUrlInput(e.target.value)}
-          placeholder="https://x.com/username/status/123...
-https://twitter.com/username/status/456...
-https://x.com/another/status/789..."
-          rows={6}
-          disabled={isAnalyzing}
-          className="w-full px-4 py-3 border border-[#DDD] rounded-xl text-sm focus:outline-none focus:border-[#C41E3A] resize-none font-mono disabled:bg-[#F5F5F5] disabled:cursor-not-allowed"
-        />
-        <p className="text-xs text-[#999] mt-1.5">
-          {urlCount > 0 ? `${urlCount} tweet${urlCount > 1 ? 's' : ''} ready` : 'Supports twitter.com and x.com'}
-        </p>
-      </div>
-
-      {/* Analyze Button */}
+    <div className={`h-full bg-[#FAFAFA] border-l border-[#EEE] flex flex-col transition-all duration-300 ${isOpen ? 'w-80' : 'w-14'}`}>
+      {/* Toggle Button */}
       <button
-        onClick={handleAnalyzeAll}
-        disabled={isAnalyzing || urlCount === 0}
-        className="w-full py-3 bg-[#C41E3A] text-white rounded-xl font-medium hover:bg-[#A31830] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        onClick={onToggle}
+        className="p-4 flex items-center gap-3 border-b border-[#EEE] hover:bg-white transition-colors"
       >
-        {isAnalyzing ? (
-          <>
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Analyzing {completedCount + errorCount + 1}/{analysisQueue.length}...
-          </>
-        ) : (
-          <>
-            <Sparkles className="w-4 h-4" />
-            {urlCount > 1 ? `Analyze ${urlCount} Tweets` : 'Analyze Tweet'}
-          </>
-        )}
+        <Plus className={`w-5 h-5 text-[#C41E3A] transition-transform ${isOpen ? '' : 'rotate-45'}`} />
+        {isOpen && <span className="font-medium text-[#1A1A1A]">Add Tweets</span>}
       </button>
 
-      {/* Progress Queue */}
-      {analysisQueue.length > 0 && (
-        <div className="mt-4 space-y-2">
-          <p className="text-xs font-medium text-[#666]">Progress</p>
-          <div className="max-h-48 overflow-y-auto space-y-1.5">
-            {analysisQueue.map((item, idx) => (
-              <div
-                key={idx}
-                className={`flex items-center gap-2 text-xs px-3 py-2 rounded-lg ${
-                  item.status === 'done' ? 'bg-green-50 text-green-700' :
-                  item.status === 'error' ? 'bg-red-50 text-red-700' :
-                  item.status === 'analyzing' ? 'bg-blue-50 text-blue-700' :
-                  'bg-[#F5F5F5] text-[#666]'
-                }`}
-              >
-                {item.status === 'analyzing' && <Loader2 className="w-3 h-3 animate-spin" />}
-                {item.status === 'done' && <CheckCircle2 className="w-3 h-3" />}
-                {item.status === 'error' && <AlertCircle className="w-3 h-3" />}
-                {item.status === 'pending' && <div className="w-3 h-3 rounded-full border border-current" />}
-                <span className="truncate flex-1 font-mono">
-                  {item.url.replace(/https?:\/\/(twitter|x)\.com\//, '@').split('/status')[0]}
-                </span>
-              </div>
-            ))}
-          </div>
-          {!isAnalyzing && (completedCount > 0 || errorCount > 0) && (
-            <button
-              onClick={() => setAnalysisQueue([])}
-              className="text-xs text-[#999] hover:text-[#666]"
-            >
-              Clear queue
-            </button>
+      {/* Panel Content */}
+      {isOpen && (
+        <div className="flex-1 p-4 overflow-y-auto">
+          {/* URL Input */}
+          <textarea
+            value={urlInput}
+            onChange={(e) => setUrlInput(e.target.value)}
+            placeholder="Paste tweet URLs here...
+
+One per line"
+            rows={8}
+            disabled={isAnalyzing}
+            className="w-full px-3 py-3 bg-white border border-[#E5E5E5] rounded-xl text-sm focus:outline-none focus:border-[#C41E3A] resize-none font-mono placeholder:text-[#BBB] disabled:opacity-50"
+          />
+
+          {urlCount > 0 && (
+            <p className="text-xs text-[#C41E3A] mt-2 font-medium">
+              {urlCount} tweet{urlCount > 1 ? 's' : ''} ready
+            </p>
+          )}
+
+          {/* Analyze Button */}
+          <button
+            onClick={handleAnalyzeAll}
+            disabled={isAnalyzing || urlCount === 0}
+            className="w-full mt-4 py-2.5 bg-[#C41E3A] text-white rounded-xl text-sm font-medium hover:bg-[#A31830] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {isAnalyzing ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                {completedCount + errorCount + 1}/{analysisQueue.length}
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4" />
+                Analyze
+              </>
+            )}
+          </button>
+
+          {/* Progress Queue */}
+          {analysisQueue.length > 0 && (
+            <div className="mt-4 space-y-1.5">
+              {analysisQueue.map((item, idx) => (
+                <div
+                  key={idx}
+                  className={`flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg ${
+                    item.status === 'done' ? 'bg-green-100 text-green-700' :
+                    item.status === 'error' ? 'bg-red-100 text-red-700' :
+                    item.status === 'analyzing' ? 'bg-blue-100 text-blue-700' :
+                    'bg-white text-[#999]'
+                  }`}
+                >
+                  {item.status === 'analyzing' && <Loader2 className="w-3 h-3 animate-spin flex-shrink-0" />}
+                  {item.status === 'done' && <CheckCircle2 className="w-3 h-3 flex-shrink-0" />}
+                  {item.status === 'error' && <AlertCircle className="w-3 h-3 flex-shrink-0" />}
+                  {item.status === 'pending' && <div className="w-3 h-3 rounded-full border border-current flex-shrink-0" />}
+                  <span className="truncate font-mono">
+                    {item.url.replace(/https?:\/\/(twitter|x)\.com\//, '@').split('/status')[0]}
+                  </span>
+                </div>
+              ))}
+              {!isAnalyzing && (
+                <button
+                  onClick={() => setAnalysisQueue([])}
+                  className="text-xs text-[#999] hover:text-[#666] mt-2"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
           )}
         </div>
       )}
@@ -973,6 +974,7 @@ export default function RoundtableTab() {
   const [analyses, setAnalyses] = useState<TweetAnalysis[]>([]);
   const [selectedAnalysis, setSelectedAnalysis] = useState<TweetAnalysis | null>(null);
   const [analysisQueue, setAnalysisQueue] = useState<UrlQueueItem[]>([]);
+  const [isPanelOpen, setIsPanelOpen] = useState(true);
 
   // Load saved analyses from localStorage
   useEffect(() => {
@@ -1004,20 +1006,15 @@ export default function RoundtableTab() {
   };
 
   return (
-    <div className="flex gap-6">
+    <div className="flex h-[calc(100vh-120px)] -m-6">
       {/* Main Content - Left Side */}
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 overflow-y-auto p-6">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-[#1A1A1A]">Roundtable</h1>
-          <p className="text-sm text-[#666] mt-1">
-            Analyze tweets with Grok, Claude & GPT to learn what makes them work
-          </p>
-        </div>
+        <h1 className="text-2xl font-semibold text-[#1A1A1A] mb-6">Roundtable</h1>
 
         {/* Card Grid */}
         {analyses.length > 0 ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className={`grid gap-4 ${isPanelOpen ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3'}`}>
             {analyses.map((analysis) => (
               <TweetCard
                 key={analysis.id}
@@ -1028,26 +1025,27 @@ export default function RoundtableTab() {
             ))}
           </div>
         ) : (
-          <div className="bg-[#FAFAFA] border border-dashed border-[#DDD] rounded-2xl p-12 text-center">
-            <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Sparkles className="w-8 h-8 text-[#C41E3A]" />
+          <div className="flex items-center justify-center h-[60vh]">
+            <div className="text-center">
+              <div className="w-12 h-12 bg-[#FFF0F3] rounded-full flex items-center justify-center mx-auto mb-4">
+                <Sparkles className="w-6 h-6 text-[#C41E3A]" />
+              </div>
+              <p className="text-[#999] text-sm">
+                {isPanelOpen ? 'Paste tweet URLs to get started' : 'Click + to add tweets'}
+              </p>
             </div>
-            <h3 className="text-lg font-semibold text-[#1A1A1A] mb-2">No tweets analyzed yet</h3>
-            <p className="text-sm text-[#666] max-w-sm mx-auto">
-              Paste tweet URLs in the panel on the right to analyze them with three AI perspectives
-            </p>
           </div>
         )}
       </div>
 
       {/* Right Side Panel */}
-      <div className="w-80 flex-shrink-0">
-        <AddTweetsPanel
-          onAnalyzeComplete={handleAnalyzeComplete}
-          analysisQueue={analysisQueue}
-          setAnalysisQueue={setAnalysisQueue}
-        />
-      </div>
+      <AddTweetsPanel
+        onAnalyzeComplete={handleAnalyzeComplete}
+        analysisQueue={analysisQueue}
+        setAnalysisQueue={setAnalysisQueue}
+        isOpen={isPanelOpen}
+        onToggle={() => setIsPanelOpen(!isPanelOpen)}
+      />
 
       {/* Swipe Analysis Modal */}
       {selectedAnalysis && (
