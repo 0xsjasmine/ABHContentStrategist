@@ -302,6 +302,7 @@ export interface TweetAnalysis {
     handle: string;
     text: string;
     url?: string;
+    embedHtml?: string;
     engagement: {
       likes: number;
       replies: number;

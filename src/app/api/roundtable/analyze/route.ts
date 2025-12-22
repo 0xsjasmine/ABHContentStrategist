@@ -331,6 +331,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     let { tweet, author, handle, url } = body;
     const { engagement } = body;
+    let embedHtml = '';
 
     // If URL provided, fetch from oEmbed
     if (url && !tweet) {
@@ -339,6 +340,7 @@ export async function POST(request: NextRequest) {
         tweet = oembedData.text;
         author = oembedData.author;
         handle = handle || extractHandle(url);
+        embedHtml = oembedData.html;
       } catch (error) {
         console.error('oEmbed fetch error:', error);
         return NextResponse.json(
@@ -392,6 +394,7 @@ export async function POST(request: NextRequest) {
         handle: handle || author,
         text: tweet,
         url,
+        embedHtml,
         engagement: engagement || { likes: 0, replies: 0, retweets: 0 },
         postedAt: new Date().toISOString(),
       },

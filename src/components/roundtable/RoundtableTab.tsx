@@ -400,7 +400,6 @@ function TweetCard({
   onClick: () => void;
 }) {
   const embedRef = useRef<HTMLDivElement>(null);
-  const [embedLoaded, setEmbedLoaded] = useState(false);
 
   // Get first takeaway as the tag
   const takeawayTag = analysis.takeaways[0]?.title || 'Analyzed';
@@ -414,19 +413,34 @@ function TweetCard({
 
   // Load Twitter widget for embed
   useEffect(() => {
-    if (embedRef.current && (window as unknown as { twttr?: { widgets?: { load?: (el: HTMLElement) => void } } }).twttr?.widgets?.load) {
-      (window as unknown as { twttr: { widgets: { load: (el: HTMLElement) => void } } }).twttr.widgets.load(embedRef.current);
-      setEmbedLoaded(true);
+    if (analysis.tweet.embedHtml && embedRef.current) {
+      // Load Twitter widgets script if not already loaded
+      const twttr = (window as unknown as { twttr?: { widgets?: { load?: (el: HTMLElement) => void } } }).twttr;
+      if (twttr?.widgets?.load) {
+        twttr.widgets.load(embedRef.current);
+      } else {
+        // Load the script
+        const script = document.createElement('script');
+        script.src = 'https://platform.twitter.com/widgets.js';
+        script.async = true;
+        script.onload = () => {
+          const newTwttr = (window as unknown as { twttr?: { widgets?: { load?: (el: HTMLElement) => void } } }).twttr;
+          if (newTwttr?.widgets?.load && embedRef.current) {
+            newTwttr.widgets.load(embedRef.current);
+          }
+        };
+        document.body.appendChild(script);
+      }
     }
-  }, []);
+  }, [analysis.tweet.embedHtml]);
 
   return (
-    <button
+    <div
       onClick={onClick}
-      className="text-left bg-white border border-[#EEE] rounded-2xl overflow-hidden hover:shadow-lg hover:border-[#C41E3A]/30 transition-all duration-200 group w-full"
+      className="cursor-pointer bg-white border border-[#EEE] rounded-2xl overflow-hidden hover:shadow-lg hover:border-[#C41E3A]/30 transition-all duration-200 group w-full"
     >
       {/* Tag & Score */}
-      <div className="px-5 pt-5 pb-3">
+      <div className="px-4 pt-4 pb-2">
         <div className="flex items-start justify-between gap-2">
           <span className="px-3 py-1.5 bg-[#C41E3A] text-white text-xs font-medium rounded-full line-clamp-1">
             {takeawayTag}
@@ -437,19 +451,26 @@ function TweetCard({
         </div>
       </div>
 
-      {/* Tweet Text Preview */}
-      <div className="px-5 pb-4">
-        <p className="text-[#1A1A1A] text-sm leading-relaxed line-clamp-4">
-          {analysis.tweet.text}
-        </p>
-      </div>
-
-      {/* Author Footer */}
-      <div className="px-5 py-3 bg-[#FAFAFA] border-t border-[#EEE]">
-        <p className="font-medium text-[#1A1A1A] text-sm">{analysis.tweet.author}</p>
-        <p className="text-xs text-[#999]">@{analysis.tweet.handle}</p>
-      </div>
-    </button>
+      {/* Tweet Embed */}
+      {analysis.tweet.embedHtml ? (
+        <div
+          ref={embedRef}
+          className="px-2 pb-2 [&_blockquote]:!m-0 [&_blockquote]:!border-0 [&_.twitter-tweet]:!m-0"
+          dangerouslySetInnerHTML={{ __html: analysis.tweet.embedHtml }}
+          onClick={(e) => e.stopPropagation()}
+        />
+      ) : (
+        <div className="px-5 pb-4">
+          <p className="text-[#1A1A1A] text-sm leading-relaxed line-clamp-4">
+            {analysis.tweet.text}
+          </p>
+          <div className="mt-3 pt-3 border-t border-[#EEE]">
+            <p className="font-medium text-[#1A1A1A] text-sm">{analysis.tweet.author}</p>
+            <p className="text-xs text-[#999]">@{analysis.tweet.handle}</p>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
