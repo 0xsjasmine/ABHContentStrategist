@@ -10,14 +10,16 @@ import {
 } from '@/lib/db';
 import type { DiaryEntry, DiaryEntryType } from '@/types';
 
-// ABH Core Pillars with filing tab colors (shades of red)
+// ABH Core Pillars - same color for all (outline style)
 const ABH_PILLARS = [
-  { id: 'ambition', label: 'Ambition', color: '#C41E3A' },      // Primary red
-  { id: 'community', label: 'Community', color: '#A31830' },    // Darker
-  { id: 'growth', label: 'Growth', color: '#D94452' },          // Lighter
-  { id: 'realness', label: 'Realness', color: '#8B1538' },      // Deep
-  { id: 'twenties', label: 'Twenties', color: '#E85A6B' },      // Soft
+  { id: 'ambition', label: 'Ambition' },
+  { id: 'community', label: 'Community' },
+  { id: 'growth', label: 'Growth' },
+  { id: 'realness', label: 'Realness' },
+  { id: 'twenties', label: 'Twenties' },
 ] as const;
+
+const PILLAR_COLOR = '#C41E3A';
 
 type PillarId = typeof ABH_PILLARS[number]['id'];
 
@@ -64,7 +66,6 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
     setEntries(allEntries);
   };
 
-  // Get entries for selected pillar (using tags or type mapping)
   const getEntriesForPillar = useCallback((pillarId: PillarId) => {
     return entries.filter(e =>
       e.tags?.includes(pillarId) || e.type === pillarToType[pillarId]
@@ -74,7 +75,6 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
   const selectedEntry = entries.find(e => e.id === selectedEntryId);
   const pillarEntries = getEntriesForPillar(selectedPillar);
 
-  // Create new entry for selected pillar
   const createNewEntry = async () => {
     const newEntry = await createDiaryEntry({
       timestamp: new Date().toISOString(),
@@ -137,46 +137,35 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
     setRightTab('compose');
   };
 
-  const currentPillar = ABH_PILLARS.find(p => p.id === selectedPillar)!;
-
   return (
     <div className="h-[calc(100vh-5rem)] flex -mx-8 -my-10">
-      {/* LEFT PANEL: Filing Tab Style Pillars */}
-      <div className="w-56 flex flex-col bg-[#FAFAFA] border-r border-[#EEE]">
-        {/* Pillar Tabs - Filing Style */}
-        <div className="flex flex-col">
-          {ABH_PILLARS.map((pillar, idx) => {
+      {/* LEFT PANEL: Pillar Tabs */}
+      <div className="w-52 flex flex-col bg-[#FAFAFA] border-r border-[#EEE]">
+        {/* Pillar Tabs - Outline Style (same color) */}
+        <div className="flex flex-col pt-2">
+          {ABH_PILLARS.map((pillar) => {
             const isActive = selectedPillar === pillar.id;
             const count = getEntriesForPillar(pillar.id).length;
             return (
               <button
                 key={pillar.id}
                 onClick={() => setSelectedPillar(pillar.id)}
-                className="relative text-left transition-all"
+                className={`
+                  text-left px-4 py-2.5 text-sm font-medium transition-all
+                  border-l-3 mx-2 rounded-r-md
+                  ${isActive
+                    ? 'bg-white text-[#1A1A1A] shadow-sm'
+                    : 'bg-transparent text-[#666] hover:bg-white/50 border-transparent'
+                  }
+                `}
                 style={{
-                  marginLeft: isActive ? 0 : 8,
-                  zIndex: isActive ? 10 : ABH_PILLARS.length - idx,
+                  borderLeftWidth: '3px',
+                  borderLeftColor: isActive ? PILLAR_COLOR : 'transparent',
                 }}
               >
-                <div
-                  className={`
-                    px-3 py-2.5 text-sm font-medium
-                    ${isActive
-                      ? 'bg-white text-[#1A1A1A] rounded-l-lg border-r-0 shadow-sm'
-                      : 'text-white rounded-l-md'
-                    }
-                  `}
-                  style={{
-                    backgroundColor: isActive ? 'white' : pillar.color,
-                    borderLeft: isActive ? `3px solid ${pillar.color}` : 'none',
-                  }}
-                >
-                  <div className="flex items-center justify-between">
-                    <span>{pillar.label}</span>
-                    <span className={`text-xs ${isActive ? 'text-[#999]' : 'opacity-70'}`}>
-                      {count}
-                    </span>
-                  </div>
+                <div className="flex items-center justify-between">
+                  <span>{pillar.label}</span>
+                  <span className="text-xs text-[#999]">{count}</span>
                 </div>
               </button>
             );
@@ -184,7 +173,7 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
         </div>
 
         {/* Entries List */}
-        <div className="flex-1 overflow-y-auto p-2 bg-white">
+        <div className="flex-1 overflow-y-auto p-2 mt-4 border-t border-[#EEE] bg-white">
           <div className="flex items-center justify-between mb-2 px-1">
             <span className="text-xs font-medium text-[#999] uppercase tracking-wide">
               Entries
@@ -192,7 +181,7 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
             <button
               onClick={createNewEntry}
               className="p-1 hover:bg-[#F5F5F5] rounded transition-colors"
-              style={{ color: currentPillar.color }}
+              style={{ color: PILLAR_COLOR }}
             >
               <Plus className="w-4 h-4" />
             </button>
@@ -215,12 +204,12 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
                     w-full text-left px-2 py-1.5 rounded text-xs cursor-pointer
                     transition-colors group flex items-center gap-1
                     ${selectedEntryId === entry.id
-                      ? 'bg-[#FEE] font-medium'
+                      ? 'bg-red-50 font-medium'
                       : 'hover:bg-[#F5F5F5]'
                     }
                   `}
                   style={{
-                    color: selectedEntryId === entry.id ? currentPillar.color : '#666'
+                    color: selectedEntryId === entry.id ? PILLAR_COLOR : '#666'
                   }}
                 >
                   <span className="flex-1 truncate">
@@ -248,9 +237,9 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
               <div className="flex items-center gap-2">
                 <span
                   className="text-xs font-medium px-2 py-0.5 rounded"
-                  style={{ backgroundColor: currentPillar.color, color: 'white' }}
+                  style={{ backgroundColor: PILLAR_COLOR, color: 'white' }}
                 >
-                  {currentPillar.label}
+                  {ABH_PILLARS.find(p => p.id === selectedPillar)?.label}
                 </span>
                 <span className="text-xs text-[#999]">
                   {formatDate(selectedEntry.timestamp)}
@@ -259,8 +248,8 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => onGeneratePost?.(selectedEntry)}
-                  className="flex items-center gap-1 px-2 py-1 text-xs hover:bg-[#FEE] rounded transition-colors"
-                  style={{ color: currentPillar.color }}
+                  className="flex items-center gap-1 px-2 py-1 text-xs hover:bg-red-50 rounded transition-colors"
+                  style={{ color: PILLAR_COLOR }}
                 >
                   <Sparkles className="w-3 h-3" />
                   Generate
@@ -287,7 +276,7 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
               <button
                 onClick={() => pullToTweet(content)}
                 className="text-xs hover:underline"
-                style={{ color: currentPillar.color }}
+                style={{ color: PILLAR_COLOR }}
               >
                 Pull to tweet →
               </button>
@@ -300,7 +289,7 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
               <button
                 onClick={createNewEntry}
                 className="px-3 py-1.5 text-white rounded text-sm font-medium transition-colors"
-                style={{ backgroundColor: currentPillar.color }}
+                style={{ backgroundColor: PILLAR_COLOR }}
               >
                 Start Writing
               </button>
@@ -309,33 +298,33 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
         )}
       </div>
 
-      {/* RIGHT PANEL: Inspo + Compose */}
-      <div className="w-72 border-l border-[#EEE] flex flex-col bg-[#FAFAFA]">
+      {/* RIGHT PANEL: Inspo + Compose (more space) */}
+      <div className="w-96 border-l border-[#EEE] flex flex-col bg-[#FAFAFA]">
         <div className="flex border-b border-[#EEE]">
           <button
             onClick={() => setRightTab('inspo')}
-            className={`flex-1 px-3 py-2.5 text-xs font-medium transition-colors ${
+            className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
               rightTab === 'inspo'
                 ? 'border-b-2'
                 : 'text-[#666] hover:text-[#1A1A1A]'
             }`}
             style={{
-              color: rightTab === 'inspo' ? currentPillar.color : undefined,
-              borderColor: rightTab === 'inspo' ? currentPillar.color : undefined,
+              color: rightTab === 'inspo' ? PILLAR_COLOR : undefined,
+              borderColor: rightTab === 'inspo' ? PILLAR_COLOR : undefined,
             }}
           >
             Inspo
           </button>
           <button
             onClick={() => setRightTab('compose')}
-            className={`flex-1 px-3 py-2.5 text-xs font-medium transition-colors ${
+            className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
               rightTab === 'compose'
                 ? 'border-b-2'
                 : 'text-[#666] hover:text-[#1A1A1A]'
             }`}
             style={{
-              color: rightTab === 'compose' ? currentPillar.color : undefined,
-              borderColor: rightTab === 'compose' ? currentPillar.color : undefined,
+              color: rightTab === 'compose' ? PILLAR_COLOR : undefined,
+              borderColor: rightTab === 'compose' ? PILLAR_COLOR : undefined,
             }}
           >
             Compose
@@ -344,43 +333,43 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
 
         <div className="flex-1 overflow-y-auto">
           {rightTab === 'inspo' ? (
-            <div className="p-3">
+            <div className="p-4">
               <button
                 onClick={generateInspo}
                 disabled={!content.trim() || isGeneratingInspo}
-                className="w-full mb-3 px-3 py-2 bg-white border border-[#EEE] rounded text-xs text-[#666] hover:text-[#1A1A1A] hover:border-[#DDD] transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+                className="w-full mb-4 px-4 py-2.5 bg-white border border-[#EEE] rounded-lg text-sm text-[#666] hover:text-[#1A1A1A] hover:border-[#DDD] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                <Sparkles className="w-3 h-3" />
+                <Sparkles className="w-4 h-4" />
                 {isGeneratingInspo ? 'Finding...' : 'Find relevant tweets'}
               </button>
 
               {inspoTweets.length === 0 ? (
-                <p className="text-xs text-[#999] text-center py-6">
+                <p className="text-sm text-[#999] text-center py-8">
                   Write something, then find related tweets
                 </p>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {inspoTweets.map((tweet) => (
-                    <div key={tweet.id} className="bg-white rounded border border-[#EEE] p-2.5">
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <div className="w-6 h-6 rounded-full bg-[#EEE] flex items-center justify-center text-[10px] font-medium text-[#666]">
+                    <div key={tweet.id} className="bg-white rounded-lg border border-[#EEE] p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-8 h-8 rounded-full bg-[#EEE] flex items-center justify-center text-xs font-medium text-[#666]">
                           {tweet.author[0]}
                         </div>
                         <div>
-                          <p className="text-xs font-medium text-[#1A1A1A]">{tweet.author}</p>
-                          <p className="text-[10px] text-[#999]">{tweet.handle}</p>
+                          <p className="text-sm font-medium text-[#1A1A1A]">{tweet.author}</p>
+                          <p className="text-xs text-[#999]">{tweet.handle}</p>
                         </div>
                       </div>
-                      <p className="text-xs text-[#666] mb-1.5">{tweet.content}</p>
+                      <p className="text-sm text-[#666] mb-2">{tweet.content}</p>
                       {tweet.url && (
                         <a
                           href={tweet.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-[10px] hover:underline flex items-center gap-0.5"
-                          style={{ color: currentPillar.color }}
+                          className="text-xs hover:underline flex items-center gap-1"
+                          style={{ color: PILLAR_COLOR }}
                         >
-                          View on X <ExternalLink className="w-2.5 h-2.5" />
+                          View on X <ExternalLink className="w-3 h-3" />
                         </a>
                       )}
                     </div>
@@ -389,40 +378,40 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
               )}
             </div>
           ) : (
-            <div className="p-3 flex flex-col h-full">
+            <div className="p-4 flex flex-col h-full">
               <textarea
                 value={tweetDraft}
                 onChange={(e) => setTweetDraft(e.target.value)}
                 placeholder="Compose your tweet..."
-                className="w-full h-32 p-2.5 bg-white border border-[#EEE] rounded text-xs text-[#1A1A1A] placeholder:text-[#CCC] resize-none focus:outline-none focus:border-[#DDD]"
+                className="w-full h-40 p-3 bg-white border border-[#EEE] rounded-lg text-sm text-[#1A1A1A] placeholder:text-[#CCC] resize-none focus:outline-none focus:border-[#DDD]"
               />
-              <div className="flex items-center justify-between mt-2">
-                <span className={`text-[10px] ${tweetDraft.length > 280 ? 'text-red-500' : 'text-[#999]'}`}>
+              <div className="flex items-center justify-between mt-3">
+                <span className={`text-xs ${tweetDraft.length > 280 ? 'text-red-500' : 'text-[#999]'}`}>
                   {tweetDraft.length}/280
                 </span>
                 <button
                   disabled={!tweetDraft.trim() || tweetDraft.length > 280}
-                  className="flex items-center gap-1 px-2.5 py-1 text-white rounded text-xs font-medium transition-colors disabled:opacity-50"
-                  style={{ backgroundColor: currentPillar.color }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: PILLAR_COLOR }}
                 >
-                  <Send className="w-2.5 h-2.5" />
+                  <Send className="w-3 h-3" />
                   Copy
                 </button>
               </div>
 
-              <div className="mt-3 pt-3 border-t border-[#EEE]">
-                <p className="text-[10px] text-[#999] mb-1.5">Quick actions</p>
-                <div className="space-y-1.5">
+              <div className="mt-4 pt-4 border-t border-[#EEE]">
+                <p className="text-xs text-[#999] mb-2">Quick actions</p>
+                <div className="space-y-2">
                   <button
                     onClick={() => setTweetDraft(content.slice(0, 280))}
-                    className="w-full text-left px-2 py-1.5 bg-white border border-[#EEE] rounded text-[10px] text-[#666] hover:text-[#1A1A1A] hover:border-[#DDD] transition-colors"
+                    className="w-full text-left px-3 py-2 bg-white border border-[#EEE] rounded-lg text-xs text-[#666] hover:text-[#1A1A1A] hover:border-[#DDD] transition-colors"
                   >
-                    Pull first 280 chars
+                    Pull first 280 chars from journal
                   </button>
                   <button
                     onClick={() => selectedEntry && onGeneratePost?.(selectedEntry)}
                     disabled={!selectedEntry}
-                    className="w-full text-left px-2 py-1.5 bg-white border border-[#EEE] rounded text-[10px] text-[#666] hover:text-[#1A1A1A] hover:border-[#DDD] transition-colors disabled:opacity-50"
+                    className="w-full text-left px-3 py-2 bg-white border border-[#EEE] rounded-lg text-xs text-[#666] hover:text-[#1A1A1A] hover:border-[#DDD] transition-colors disabled:opacity-50"
                   >
                     AI generate from journal
                   </button>
