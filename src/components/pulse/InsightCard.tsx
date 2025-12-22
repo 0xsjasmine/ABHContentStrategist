@@ -3,13 +3,9 @@
 import { useState, useEffect, useRef } from 'react';
 import type { ABHCategory, ABHScore, KeyPost, EngagementOpportunity } from '@/types/database';
 
-// Pillar config for badges
-const PILLAR_CONFIG = {
-  friendships: { label: 'Friendships', color: 'bg-pink-100 text-pink-700' },
-  ai: { label: 'AI', color: 'bg-blue-100 text-blue-700' },
-  ambition: { label: 'Ambition', color: 'bg-purple-100 text-purple-700' },
-  twenties: { label: 'Twenties', color: 'bg-amber-100 text-amber-700' },
-};
+// Brand colors only
+const BRAND_RED = '#C41E3A';
+const BRAND_RED_LIGHT = '#FEF2F2';
 
 // Icons
 const CrownIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
@@ -193,7 +189,7 @@ function getTimeAgo(dateString?: string): string {
 }
 
 // ==========================================
-// COMPACT CARD - Shows minimal info, clickable
+// COMPACT CARD - Grid-style card (Pinterest layout)
 // ==========================================
 interface InsightCardCompactProps extends InsightCardProps {
   onClick: () => void;
@@ -212,97 +208,106 @@ export function InsightCardCompact({
   onDismiss,
   id,
 }: InsightCardCompactProps) {
+  // Get top pillars (score > 5)
+  const topPillars = [
+    abhScore.friendships > 5 && 'Friendships',
+    abhScore.ai > 5 && 'AI',
+    abhScore.ambition > 5 && 'Ambition',
+    abhScore.twenties > 5 && 'Twenties',
+  ].filter(Boolean);
+
   return (
     <div
       onClick={onClick}
-      className="bg-white rounded-xl border border-gray-200 p-4 cursor-pointer hover:shadow-md hover:border-gray-300 transition-all group"
+      className="bg-white rounded-2xl border border-gray-200 overflow-hidden cursor-pointer hover:shadow-lg hover:border-gray-300 transition-all group flex flex-col"
     >
-      <div className="flex items-start gap-3">
-        {/* Time badge */}
-        <span className="text-xs font-medium px-2 py-1 rounded-full bg-green-100 text-green-700 whitespace-nowrap">
-          {getTimeAgo(scannedAt)}
-        </span>
-        <span className="p-1 text-gray-400">
-          <UserIcon />
-        </span>
-
-        {/* Actions - Save & Dismiss */}
-        <div className="ml-auto flex items-center gap-1">
-          {onToggleSave && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleSave();
-              }}
-              className={`p-1.5 rounded-lg transition-colors ${
-                isSaved
-                  ? 'bg-amber-100 text-amber-600'
-                  : 'text-gray-400 hover:bg-gray-100'
-              }`}
-              title={isSaved ? 'Remove from saved' : 'Save for later'}
-            >
-              <svg className="w-4 h-4" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-              </svg>
-            </button>
-          )}
-          {onDismiss && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDismiss(id);
-              }}
-              className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <XIcon />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="flex items-start gap-3 mt-3">
-        <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center text-red-600 flex-shrink-0">
-          <CrownIcon className="w-5 h-5" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-gray-900 leading-tight group-hover:text-red-700 transition-colors">
-            {headline}
-          </h3>
-          {subtitle && (
-            <p className="text-sm text-red-600 mt-0.5 line-clamp-1">
-              {subtitle}
-            </p>
-          )}
-          {/* Pillar Badges */}
-          <div className="flex flex-wrap gap-1.5 mt-2">
-            {abhScore.friendships > 5 && (
-              <span className={`text-xs px-2 py-0.5 rounded-full ${PILLAR_CONFIG.friendships.color}`}>
-                Friendships {abhScore.friendships}
-              </span>
+      {/* Card Header - Gradient background */}
+      <div
+        className="p-4 pb-6"
+        style={{ background: `linear-gradient(135deg, ${BRAND_RED_LIGHT} 0%, #FFF 100%)` }}
+      >
+        {/* Top row - time & actions */}
+        <div className="flex items-center justify-between mb-3">
+          <span
+            className="text-xs font-medium px-2 py-1 rounded-full"
+            style={{ backgroundColor: BRAND_RED, color: 'white' }}
+          >
+            {getTimeAgo(scannedAt)}
+          </span>
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            {onToggleSave && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleSave();
+                }}
+                className="p-1.5 rounded-lg transition-colors bg-white/80 hover:bg-white"
+                style={{ color: isSaved ? BRAND_RED : '#9CA3AF' }}
+                title={isSaved ? 'Remove from saved' : 'Save'}
+              >
+                <svg className="w-4 h-4" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                </svg>
+              </button>
             )}
-            {abhScore.ai > 5 && (
-              <span className={`text-xs px-2 py-0.5 rounded-full ${PILLAR_CONFIG.ai.color}`}>
-                AI {abhScore.ai}
-              </span>
-            )}
-            {abhScore.ambition > 5 && (
-              <span className={`text-xs px-2 py-0.5 rounded-full ${PILLAR_CONFIG.ambition.color}`}>
-                Ambition {abhScore.ambition}
-              </span>
-            )}
-            {abhScore.twenties > 5 && (
-              <span className={`text-xs px-2 py-0.5 rounded-full ${PILLAR_CONFIG.twenties.color}`}>
-                Twenties {abhScore.twenties}
-              </span>
+            {onDismiss && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDismiss(id);
+                }}
+                className="p-1.5 text-gray-400 hover:text-gray-600 bg-white/80 hover:bg-white rounded-lg transition-colors"
+              >
+                <XIcon />
+              </button>
             )}
           </div>
         </div>
 
-        {/* ABH Score */}
-        <div className="flex-shrink-0 w-16 h-16 rounded-xl bg-red-700 text-white flex flex-col items-center justify-center">
-          <span className="text-xl font-bold">{abhScore.composite}/10</span>
-          <span className="text-[10px] uppercase tracking-wide opacity-80">ABH Score</span>
+        {/* Crown icon */}
+        <div
+          className="w-12 h-12 rounded-xl flex items-center justify-center mb-3"
+          style={{ backgroundColor: BRAND_RED, color: 'white' }}
+        >
+          <CrownIcon className="w-6 h-6" />
+        </div>
+
+        {/* Headline */}
+        <h3
+          className="font-semibold text-gray-900 leading-tight text-lg group-hover:opacity-80 transition-opacity"
+        >
+          {headline}
+        </h3>
+      </div>
+
+      {/* Card Body */}
+      <div className="p-4 pt-0 flex-1 flex flex-col">
+        {/* Subtitle */}
+        {subtitle && (
+          <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+            {subtitle}
+          </p>
+        )}
+
+        {/* Pillars as simple text */}
+        {topPillars.length > 0 && (
+          <p className="text-xs text-gray-400 mb-3">
+            {topPillars.join(' · ')}
+          </p>
+        )}
+
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* Footer - Score */}
+        <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+          <span className="text-xs text-gray-400">ABH Score</span>
+          <span
+            className="text-lg font-bold"
+            style={{ color: BRAND_RED }}
+          >
+            {abhScore.composite}/10
+          </span>
         </div>
       </div>
     </div>
@@ -355,12 +360,6 @@ export function InsightModal({
 
   if (!isOpen) return null;
 
-  const urgencyColors = {
-    high: 'bg-red-100 text-red-700',
-    medium: 'bg-amber-100 text-amber-700',
-    low: 'bg-green-100 text-green-700',
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
@@ -374,18 +373,18 @@ export function InsightModal({
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-gray-100 p-4 flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center text-red-600">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white" style={{ backgroundColor: BRAND_RED }}>
               <CrownIcon className="w-6 h-6" />
             </div>
             <div>
               <h2 className="text-lg font-semibold text-gray-900">{headline}</h2>
               {subtitle && (
-                <p className="text-sm text-red-600">{subtitle}</p>
+                <p className="text-sm text-gray-600">{subtitle}</p>
               )}
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-14 h-14 rounded-xl bg-red-700 text-white flex flex-col items-center justify-center">
+            <div className="w-14 h-14 rounded-xl text-white flex flex-col items-center justify-center" style={{ backgroundColor: BRAND_RED }}>
               <span className="text-lg font-bold">{abhScore.composite}/10</span>
               <span className="text-[8px] uppercase tracking-wide opacity-80">ABH</span>
             </div>
@@ -400,25 +399,25 @@ export function InsightModal({
 
         {/* Content */}
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-          {/* Pillar Badges */}
+          {/* Pillar Tags - Brand colors only */}
           <div className="flex flex-wrap gap-2 mb-4">
             {abhScore.friendships > 5 && (
-              <span className={`text-sm px-3 py-1 rounded-full ${PILLAR_CONFIG.friendships.color}`}>
+              <span className="text-sm px-3 py-1 rounded-full border border-gray-200 text-gray-600">
                 Friendships {abhScore.friendships}
               </span>
             )}
             {abhScore.ai > 5 && (
-              <span className={`text-sm px-3 py-1 rounded-full ${PILLAR_CONFIG.ai.color}`}>
+              <span className="text-sm px-3 py-1 rounded-full border border-gray-200 text-gray-600">
                 AI {abhScore.ai}
               </span>
             )}
             {abhScore.ambition > 5 && (
-              <span className={`text-sm px-3 py-1 rounded-full ${PILLAR_CONFIG.ambition.color}`}>
+              <span className="text-sm px-3 py-1 rounded-full border border-gray-200 text-gray-600">
                 Ambition {abhScore.ambition}
               </span>
             )}
             {abhScore.twenties > 5 && (
-              <span className={`text-sm px-3 py-1 rounded-full ${PILLAR_CONFIG.twenties.color}`}>
+              <span className="text-sm px-3 py-1 rounded-full border border-gray-200 text-gray-600">
                 Twenties {abhScore.twenties}
               </span>
             )}
@@ -429,12 +428,12 @@ export function InsightModal({
 
           {/* Why This Matters */}
           {whyThisMatters && (
-            <div className="mt-6 p-4 bg-amber-50 rounded-xl border border-amber-100">
-              <div className="flex items-center gap-2 text-sm font-semibold text-amber-800 mb-2">
+            <div className="mt-6 p-4 rounded-xl border border-gray-200" style={{ backgroundColor: BRAND_RED_LIGHT }}>
+              <div className="flex items-center gap-2 text-sm font-semibold mb-2" style={{ color: BRAND_RED }}>
                 <LightbulbIcon />
                 Why This Is Worth Noting
               </div>
-              <p className="text-amber-900 text-sm">{whyThisMatters}</p>
+              <p className="text-gray-700 text-sm">{whyThisMatters}</p>
             </div>
           )}
 
@@ -447,7 +446,7 @@ export function InsightModal({
             <div className="space-y-2">
               {abhScore.friendships > 5 && (
                 <div className="flex items-start gap-3">
-                  <span className="w-6 h-6 rounded-full bg-red-100 text-red-700 flex items-center justify-center text-xs font-semibold flex-shrink-0">1</span>
+                  <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0 text-white" style={{ backgroundColor: BRAND_RED }}>1</span>
                   <span className="text-sm text-gray-700">
                     Strong friendships angle ({abhScore.friendships}/10) - touches on connection and support
                   </span>
@@ -455,7 +454,7 @@ export function InsightModal({
               )}
               {abhScore.ai > 5 && (
                 <div className="flex items-start gap-3">
-                  <span className="w-6 h-6 rounded-full bg-red-100 text-red-700 flex items-center justify-center text-xs font-semibold flex-shrink-0">2</span>
+                  <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0 text-white" style={{ backgroundColor: BRAND_RED }}>2</span>
                   <span className="text-sm text-gray-700">
                     High AI relevance ({abhScore.ai}/10) - relates to AI, tech, and staying human in the AI era
                   </span>
@@ -463,7 +462,7 @@ export function InsightModal({
               )}
               {abhScore.ambition > 5 && (
                 <div className="flex items-start gap-3">
-                  <span className="w-6 h-6 rounded-full bg-red-100 text-red-700 flex items-center justify-center text-xs font-semibold flex-shrink-0">3</span>
+                  <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0 text-white" style={{ backgroundColor: BRAND_RED }}>3</span>
                   <span className="text-sm text-gray-700">
                     High ambition factor ({abhScore.ambition}/10) - relates to career, building, or goals
                   </span>
@@ -475,11 +474,11 @@ export function InsightModal({
           {/* Key Insight */}
           {keyInsight && (
             <div className="mt-6">
-              <div className="flex items-center gap-2 text-sm font-semibold text-red-700 mb-2">
+              <div className="flex items-center gap-2 text-sm font-semibold mb-2" style={{ color: BRAND_RED }}>
                 <SparklesIcon />
                 The Key Insight
               </div>
-              <div className="p-4 bg-red-50 rounded-xl border border-red-100 italic text-red-900">
+              <div className="p-4 rounded-xl border border-gray-200 italic text-gray-700" style={{ backgroundColor: BRAND_RED_LIGHT }}>
                 "{keyInsight}"
               </div>
             </div>
@@ -512,7 +511,7 @@ export function InsightModal({
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                   >
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-red-400 to-red-600 flex items-center justify-center text-white text-sm font-medium">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium" style={{ backgroundColor: BRAND_RED }}>
                       {handle.replace('@', '').charAt(0).toUpperCase()}
                     </div>
                     <span className="text-sm font-medium text-gray-700">{handle}</span>
@@ -552,7 +551,8 @@ export function InsightModal({
                 {keyPosts.length > 2 && (
                   <button
                     onClick={() => setIsExpanded(!isExpanded)}
-                    className="text-sm font-medium w-full py-2 rounded-lg hover:bg-gray-50 text-red-700"
+                    className="text-sm font-medium w-full py-2 rounded-lg hover:bg-gray-50"
+                    style={{ color: BRAND_RED }}
                   >
                     {isExpanded ? 'Show less' : `Show ${keyPosts.length - 2} more`}
                   </button>
@@ -580,10 +580,13 @@ export function InsightModal({
 
           {/* Engagement Opportunity */}
           {engagementOpportunity && (
-            <div className="mt-6 p-4 bg-gradient-to-r from-red-50 to-pink-50 rounded-xl border border-red-100">
+            <div className="mt-6 p-4 rounded-xl border border-gray-200" style={{ backgroundColor: BRAND_RED_LIGHT }}>
               <div className="flex items-center justify-between">
                 <div>
-                  <span className={`text-xs font-semibold px-2 py-1 rounded ${urgencyColors[engagementOpportunity.urgency]}`}>
+                  <span
+                    className="text-xs font-semibold px-2 py-1 rounded text-white"
+                    style={{ backgroundColor: engagementOpportunity.urgency === 'high' ? BRAND_RED : '#6B7280' }}
+                  >
                     {engagementOpportunity.urgency.toUpperCase()} PRIORITY
                   </span>
                   <p className="text-sm text-gray-700 mt-2">
@@ -592,7 +595,8 @@ export function InsightModal({
                 </div>
                 <button
                   onClick={() => onEngage?.(id, engagementOpportunity.type)}
-                  className="px-4 py-2 bg-red-700 text-white rounded-lg text-sm font-medium hover:bg-red-800 transition-colors"
+                  className="px-4 py-2 text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
+                  style={{ backgroundColor: BRAND_RED }}
                 >
                   {engagementOpportunity.type === 'reply' && 'Reply'}
                   {engagementOpportunity.type === 'quote_tweet' && 'Quote Tweet'}

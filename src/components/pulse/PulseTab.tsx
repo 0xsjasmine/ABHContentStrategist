@@ -441,7 +441,7 @@ export default function PulseTab() {
           )}
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-8">
           {Array.from(groupedInsights.entries()).map(([dateGroup, groupInsights]) => (
             <div key={dateGroup}>
               {/* Date Group Header */}
@@ -451,8 +451,8 @@ export default function PulseTab() {
                 <span className="text-xs text-gray-400">{groupInsights.length} insight{groupInsights.length !== 1 ? 's' : ''}</span>
               </div>
 
-              {/* Insights in this group */}
-              <div className="space-y-3">
+              {/* Pinterest-style Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {groupInsights.map((insight) => (
                   <InsightCard
                     key={insight.id}
