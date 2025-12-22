@@ -69,14 +69,14 @@ const PSYCHOLOGY_PROMPT = `You are an expert content psychologist analyzing vira
 - Are there sensory/structural surprises?
 - What format innovations exist?
 
-4. ADDITIONAL TRIGGERS
-- Social Proof (present/absent)
-- Loss Aversion (present/absent)
-- Identity Signaling (present/absent)
-- Specificity Level (low/medium/high)
-- Vulnerability Factor (low/medium/high)
-- Permission Giving (present/absent)
-- Pattern Completion (present/absent)
+4. ADDITIONAL TRIGGERS (analyze each one that's present)
+- Social Proof: Does it leverage others' behavior/opinions?
+- Loss Aversion: Does it frame around avoiding loss?
+- Identity Signaling: Does it help readers signal who they are?
+- Specificity: Are there concrete numbers, names, details?
+- Vulnerability: Does it show weakness or humanness?
+- Permission Giving: Does it give readers permission to feel/do something?
+- Pattern Completion: Does it set up a pattern the brain wants to finish?
 
 5. ALIGNMENT SCORES (for "Ambitious But Human" brand)
 - ABH Fit (1-10): Does it balance ambition + humanity?
@@ -101,13 +101,13 @@ Respond in this exact JSON format:
     "details": ["<technique 1>", "<technique 2>"]
   },
   "additionalTriggers": {
-    "socialProof": <true/false>,
-    "lossAversion": <true/false>,
-    "identitySignaling": <true/false>,
-    "specificityLevel": "<low/medium/high>",
-    "vulnerabilityFactor": "<low/medium/high>",
-    "permissionGiving": <true/false>,
-    "patternCompletion": <true/false>
+    "socialProof": { "present": <true/false>, "analysis": "<1-2 sentences if present, empty if not>" },
+    "lossAversion": { "present": <true/false>, "analysis": "<1-2 sentences if present, empty if not>" },
+    "identitySignaling": { "present": <true/false>, "analysis": "<1-2 sentences if present, empty if not>" },
+    "specificity": { "level": "<low/medium/high>", "analysis": "<1-2 sentences explaining the specificity>" },
+    "vulnerability": { "level": "<low/medium/high>", "analysis": "<1-2 sentences explaining the vulnerability>" },
+    "permissionGiving": { "present": <true/false>, "analysis": "<1-2 sentences if present, empty if not>" },
+    "patternCompletion": { "present": <true/false>, "analysis": "<1-2 sentences if present, empty if not>" }
   },
   "keyInsight": "<One key insight about why this tweet works, unique to your perspective>",
   "alignmentScores": {

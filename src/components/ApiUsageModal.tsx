@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, ChevronLeft, ChevronRight, BarChart3, DollarSign, Zap, Calculator, Sparkles, Radio } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, BarChart3, DollarSign, Zap, Calculator, Sparkles, Radio, Bot } from 'lucide-react';
 
 interface ProviderUsage {
   calls: number;
@@ -19,6 +19,7 @@ interface MonthlyUsage {
   month: string; // YYYY-MM format
   claude: ProviderUsage;
   grok: ProviderUsage;
+  openai: ProviderUsage;
   features: FeatureUsage[];
 }
 
@@ -42,6 +43,7 @@ export default function ApiUsageModal({ isOpen, onClose }: ApiUsageModalProps) {
     month: currentDate,
     claude: { calls: 0, cost: 0, tokens: 0 },
     grok: { calls: 0, cost: 0, tokens: 0 },
+    openai: { calls: 0, cost: 0, tokens: 0 },
     features: [],
   });
 
@@ -54,12 +56,18 @@ export default function ApiUsageModal({ isOpen, onClose }: ApiUsageModalProps) {
     const stored = localStorage.getItem(`abh_api_usage_${currentDate}`);
     if (stored) {
       try {
-        setUsage(JSON.parse(stored));
+        const parsed = JSON.parse(stored);
+        // Ensure openai exists for backwards compatibility
+        if (!parsed.openai) {
+          parsed.openai = { calls: 0, cost: 0, tokens: 0 };
+        }
+        setUsage(parsed);
       } catch {
         setUsage({
           month: currentDate,
           claude: { calls: 0, cost: 0, tokens: 0 },
           grok: { calls: 0, cost: 0, tokens: 0 },
+          openai: { calls: 0, cost: 0, tokens: 0 },
           features: [],
         });
       }
@@ -68,6 +76,7 @@ export default function ApiUsageModal({ isOpen, onClose }: ApiUsageModalProps) {
         month: currentDate,
         claude: { calls: 0, cost: 0, tokens: 0 },
         grok: { calls: 0, cost: 0, tokens: 0 },
+        openai: { calls: 0, cost: 0, tokens: 0 },
         features: [],
       });
     }
@@ -81,7 +90,12 @@ export default function ApiUsageModal({ isOpen, onClose }: ApiUsageModalProps) {
     const prevStored = localStorage.getItem(`abh_api_usage_${prevMonthKey}`);
     if (prevStored) {
       try {
-        setPrevMonthUsage(JSON.parse(prevStored));
+        const parsed = JSON.parse(prevStored);
+        // Ensure openai exists for backwards compatibility
+        if (!parsed.openai) {
+          parsed.openai = { calls: 0, cost: 0, tokens: 0 };
+        }
+        setPrevMonthUsage(parsed);
       } catch {
         setPrevMonthUsage(null);
       }
@@ -111,15 +125,15 @@ export default function ApiUsageModal({ isOpen, onClose }: ApiUsageModalProps) {
     return `${MONTHS[month - 1]} ${year}`;
   };
 
-  const totalCost = usage.claude.cost + usage.grok.cost;
-  const totalCalls = usage.claude.calls + usage.grok.calls;
+  const totalCost = usage.claude.cost + usage.grok.cost + usage.openai.cost;
+  const totalCalls = usage.claude.calls + usage.grok.calls + usage.openai.calls;
   const avgPerCall = totalCalls > 0 ? totalCost / totalCalls : 0;
 
   const prevTotalCost = prevMonthUsage
-    ? prevMonthUsage.claude.cost + prevMonthUsage.grok.cost
+    ? prevMonthUsage.claude.cost + prevMonthUsage.grok.cost + prevMonthUsage.openai.cost
     : 0;
   const prevTotalCalls = prevMonthUsage
-    ? prevMonthUsage.claude.calls + prevMonthUsage.grok.calls
+    ? prevMonthUsage.claude.calls + prevMonthUsage.grok.calls + prevMonthUsage.openai.calls
     : 0;
 
   const costDiff = totalCost - prevTotalCost;
@@ -214,7 +228,7 @@ export default function ApiUsageModal({ isOpen, onClose }: ApiUsageModalProps) {
           {/* By Provider */}
           <div className="mb-8">
             <h3 className="text-sm font-semibold text-[#1A1A1A] mb-4">By Provider</h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               {/* Claude */}
               <div className="bg-white border border-[#EEE] rounded-xl p-5">
                 <div className="flex items-center gap-3 mb-4">
@@ -222,8 +236,8 @@ export default function ApiUsageModal({ isOpen, onClose }: ApiUsageModalProps) {
                     <Sparkles className="w-5 h-5 text-[#C41E3A]" />
                   </div>
                   <div>
-                    <p className="font-semibold text-[#1A1A1A]">Claude (Anthropic)</p>
-                    <p className="text-xs text-[#999]">AI Research & Polish</p>
+                    <p className="font-semibold text-[#1A1A1A]">Claude</p>
+                    <p className="text-xs text-[#999]">Anthropic</p>
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -249,8 +263,8 @@ export default function ApiUsageModal({ isOpen, onClose }: ApiUsageModalProps) {
                     <Radio className="w-5 h-5 text-[#C41E3A]" />
                   </div>
                   <div>
-                    <p className="font-semibold text-[#1A1A1A]">Grok (xAI)</p>
-                    <p className="text-xs text-[#999]">Pulse & Social Scanning</p>
+                    <p className="font-semibold text-[#1A1A1A]">Grok</p>
+                    <p className="text-xs text-[#999]">xAI</p>
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -265,6 +279,33 @@ export default function ApiUsageModal({ isOpen, onClose }: ApiUsageModalProps) {
                   <div className="flex justify-between text-sm">
                     <span className="text-[#666]">Tokens</span>
                     <span className="text-[#1A1A1A] font-medium">{usage.grok.tokens.toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* OpenAI / GPT */}
+              <div className="bg-white border border-[#EEE] rounded-xl p-5">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center">
+                    <Bot className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-[#1A1A1A]">GPT-4o</p>
+                    <p className="text-xs text-[#999]">OpenAI</p>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-[#666]">Calls</span>
+                    <span className="text-[#1A1A1A] font-medium">{usage.openai.calls.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-[#666]">Cost</span>
+                    <span className="text-[#C41E3A] font-medium">${usage.openai.cost.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-[#666]">Tokens</span>
+                    <span className="text-[#1A1A1A] font-medium">{usage.openai.tokens.toLocaleString()}</span>
                   </div>
                 </div>
               </div>

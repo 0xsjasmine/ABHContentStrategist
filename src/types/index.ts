@@ -253,14 +253,26 @@ export interface PsychologyScore {
   details?: string[];
 }
 
+export interface TriggerWithAnalysis {
+  present: boolean;
+  analysis: string;
+}
+
+export interface LevelTrigger {
+  level: 'low' | 'medium' | 'high';
+  analysis: string;
+}
+
 export interface AdditionalTriggers {
-  socialProof: boolean;
-  lossAversion: boolean;
-  identitySignaling: boolean;
-  specificityLevel: 'low' | 'medium' | 'high';
-  vulnerabilityFactor: 'low' | 'medium' | 'high';
-  permissionGiving: boolean;
-  patternCompletion: boolean;
+  socialProof: TriggerWithAnalysis | boolean; // Support both new and old format
+  lossAversion: TriggerWithAnalysis | boolean;
+  identitySignaling: TriggerWithAnalysis | boolean;
+  specificity?: LevelTrigger; // New format
+  vulnerability?: LevelTrigger; // New format
+  specificityLevel?: 'low' | 'medium' | 'high'; // Old format for backwards compat
+  vulnerabilityFactor?: 'low' | 'medium' | 'high'; // Old format for backwards compat
+  permissionGiving: TriggerWithAnalysis | boolean;
+  patternCompletion: TriggerWithAnalysis | boolean;
 }
 
 export interface AlignmentScores {

@@ -366,35 +366,79 @@ function AISlide({ analysis, aiType }: { analysis: AIAnalysis; aiType: 'grok' | 
         </div>
       </div>
 
-      {/* Additional Psychological Triggers - Show active ones */}
-      {analysis.additionalTriggers && (
-        <div className="bg-[#F8F8F8] rounded-xl p-4">
-          <h4 className="text-sm font-semibold text-[#1A1A1A] mb-3">Also Present</h4>
-          <div className="flex flex-wrap gap-2">
-            {analysis.additionalTriggers.socialProof && (
-              <span className="px-3 py-1.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">Social Proof</span>
-            )}
-            {analysis.additionalTriggers.lossAversion && (
-              <span className="px-3 py-1.5 bg-orange-100 text-orange-700 text-xs font-medium rounded-full">Loss Aversion</span>
-            )}
-            {analysis.additionalTriggers.identitySignaling && (
-              <span className="px-3 py-1.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">Identity Signaling</span>
-            )}
-            {analysis.additionalTriggers.permissionGiving && (
-              <span className="px-3 py-1.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">Permission Giving</span>
-            )}
-            {analysis.additionalTriggers.patternCompletion && (
-              <span className="px-3 py-1.5 bg-pink-100 text-pink-700 text-xs font-medium rounded-full">Pattern Completion</span>
-            )}
-            {analysis.additionalTriggers.vulnerabilityFactor === 'high' && (
-              <span className="px-3 py-1.5 bg-red-100 text-red-700 text-xs font-medium rounded-full">High Vulnerability</span>
-            )}
-            {analysis.additionalTriggers.specificityLevel === 'high' && (
-              <span className="px-3 py-1.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">High Specificity</span>
-            )}
+      {/* Additional Psychological Triggers - Full breakdowns */}
+      {analysis.additionalTriggers && (() => {
+        const triggers = analysis.additionalTriggers;
+
+        // Helper to check if trigger is present and get analysis
+        const getTrigger = (t: unknown): { present: boolean; analysis: string } => {
+          if (typeof t === 'boolean') return { present: t, analysis: '' };
+          if (t && typeof t === 'object' && 'present' in t) return t as { present: boolean; analysis: string };
+          return { present: false, analysis: '' };
+        };
+
+        const getLevel = (t: unknown, oldLevel?: string): { level: string; analysis: string } | null => {
+          if (t && typeof t === 'object' && 'level' in t) return t as { level: string; analysis: string };
+          if (oldLevel && (oldLevel === 'medium' || oldLevel === 'high')) return { level: oldLevel, analysis: '' };
+          return null;
+        };
+
+        const socialProof = getTrigger(triggers.socialProof);
+        const lossAversion = getTrigger(triggers.lossAversion);
+        const identitySignaling = getTrigger(triggers.identitySignaling);
+        const permissionGiving = getTrigger(triggers.permissionGiving);
+        const patternCompletion = getTrigger(triggers.patternCompletion);
+        const vulnerability = getLevel(triggers.vulnerability, triggers.vulnerabilityFactor);
+        const specificity = getLevel(triggers.specificity, triggers.specificityLevel);
+
+        const activeTriggers = [
+          socialProof.present && { name: 'Social Proof', ...socialProof, color: 'green' },
+          lossAversion.present && { name: 'Loss Aversion', ...lossAversion, color: 'orange' },
+          identitySignaling.present && { name: 'Identity Signaling', ...identitySignaling, color: 'purple' },
+          permissionGiving.present && { name: 'Permission Giving', ...permissionGiving, color: 'blue' },
+          patternCompletion.present && { name: 'Pattern Completion', ...patternCompletion, color: 'pink' },
+          vulnerability && { name: `Vulnerability (${vulnerability.level})`, present: true, analysis: vulnerability.analysis, color: 'red' },
+          specificity && { name: `Specificity (${specificity.level})`, present: true, analysis: specificity.analysis, color: 'amber' },
+        ].filter(Boolean) as { name: string; present: boolean; analysis: string; color: string }[];
+
+        if (activeTriggers.length === 0) return null;
+
+        const bgColors: Record<string, string> = {
+          green: 'bg-green-50',
+          orange: 'bg-orange-50',
+          purple: 'bg-purple-50',
+          blue: 'bg-blue-50',
+          pink: 'bg-pink-50',
+          red: 'bg-red-50',
+          amber: 'bg-amber-50',
+        };
+        const dotColors: Record<string, string> = {
+          green: 'bg-green-500',
+          orange: 'bg-orange-500',
+          purple: 'bg-purple-500',
+          blue: 'bg-blue-500',
+          pink: 'bg-pink-500',
+          red: 'bg-red-500',
+          amber: 'bg-amber-500',
+        };
+
+        return (
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold text-[#1A1A1A]">Also Present</h4>
+            {activeTriggers.map((trigger, i) => (
+              <div key={i} className={`${bgColors[trigger.color] || 'bg-gray-50'} rounded-xl p-3`}>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`w-2 h-2 rounded-full ${dotColors[trigger.color] || 'bg-gray-500'}`} />
+                  <span className="text-sm font-medium text-[#1A1A1A]">{trigger.name}</span>
+                </div>
+                {trigger.analysis && (
+                  <p className="text-sm text-[#666] ml-4">{trigger.analysis}</p>
+                )}
+              </div>
+            ))}
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* The Key Insight - Pink Box (Pulse Style) */}
       <div className="bg-gradient-to-r from-[#FFF0F3] to-[#FFF5F7] border-l-4 border-[#C41E3A] rounded-r-xl p-4">
