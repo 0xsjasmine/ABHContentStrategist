@@ -17,6 +17,13 @@ const categoryTabs = [
   { id: 'twenties', label: 'Twenties' },
 ];
 
+// Local storage keys
+const WATCHLIST_KEY = 'abh_pulse_watchlist';
+const INSIGHTS_KEY = 'abh_pulse_insights';
+
+// Helper to generate IDs
+const generateId = () => crypto.randomUUID();
+
 export default function PulseTab() {
   const [accounts, setAccounts] = useState<WatchlistAccount[]>([]);
   const [insights, setInsights] = useState<PulseInsight[]>([]);
@@ -27,24 +34,39 @@ export default function PulseTab() {
   const [showWatchlist, setShowWatchlist] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch watchlist accounts
+  // Load watchlist from localStorage
   const fetchAccounts = useCallback(async () => {
     try {
+      // Try API first (Supabase)
       const res = await fetch('/api/pulse/watchlist');
       if (res.ok) {
         const data = await res.json();
-        setAccounts(data.accounts || []);
+        if (data.accounts && data.accounts.length > 0) {
+          setAccounts(data.accounts);
+          setIsLoadingAccounts(false);
+          return;
+        }
       }
     } catch (err) {
-      console.error('Error fetching accounts:', err);
-    } finally {
-      setIsLoadingAccounts(false);
+      console.log('Supabase not configured, using localStorage');
     }
+
+    // Fallback to localStorage
+    const saved = localStorage.getItem(WATCHLIST_KEY);
+    if (saved) {
+      try {
+        setAccounts(JSON.parse(saved));
+      } catch {
+        setAccounts([]);
+      }
+    }
+    setIsLoadingAccounts(false);
   }, []);
 
-  // Fetch insights
+  // Load insights from localStorage
   const fetchInsights = useCallback(async () => {
     try {
+      // Try API first (Supabase)
       const params = new URLSearchParams();
       if (selectedCategory !== 'all') {
         params.set('category', selectedCategory);
@@ -52,13 +74,30 @@ export default function PulseTab() {
       const res = await fetch(`/api/pulse/insights?${params}`);
       if (res.ok) {
         const data = await res.json();
-        setInsights(data.insights || []);
+        if (data.insights && data.insights.length > 0) {
+          setInsights(data.insights);
+          setIsLoadingInsights(false);
+          return;
+        }
       }
     } catch (err) {
-      console.error('Error fetching insights:', err);
-    } finally {
-      setIsLoadingInsights(false);
+      console.log('Supabase not configured, using localStorage');
     }
+
+    // Fallback to localStorage
+    const saved = localStorage.getItem(INSIGHTS_KEY);
+    if (saved) {
+      try {
+        const allInsights: PulseInsight[] = JSON.parse(saved);
+        const filtered = selectedCategory === 'all'
+          ? allInsights
+          : allInsights.filter(i => i.category === selectedCategory);
+        setInsights(filtered);
+      } catch {
+        setInsights([]);
+      }
+    }
+    setIsLoadingInsights(false);
   }, [selectedCategory]);
 
   useEffect(() => {
@@ -69,24 +108,64 @@ export default function PulseTab() {
     fetchInsights();
   }, [fetchInsights]);
 
+  // Save watchlist to localStorage
+  const saveAccountsToLocal = (newAccounts: WatchlistAccount[]) => {
+    localStorage.setItem(WATCHLIST_KEY, JSON.stringify(newAccounts));
+  };
+
+  // Save insights to localStorage
+  const saveInsightsToLocal = (newInsights: PulseInsight[]) => {
+    localStorage.setItem(INSIGHTS_KEY, JSON.stringify(newInsights));
+  };
+
   // Add account to watchlist
   const handleAddAccount = async (account: Omit<WatchlistAccount, 'id' | 'added_at' | 'last_scanned_at'>) => {
-    const res = await fetch('/api/pulse/watchlist', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(account),
-    });
-    if (!res.ok) throw new Error('Failed to add account');
-    await fetchAccounts();
+    // Try API first
+    try {
+      const res = await fetch('/api/pulse/watchlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(account),
+      });
+      if (res.ok) {
+        await fetchAccounts();
+        return;
+      }
+    } catch {
+      // Fallback to localStorage
+    }
+
+    // Save to localStorage
+    const newAccount: WatchlistAccount = {
+      ...account,
+      id: generateId(),
+      added_at: new Date().toISOString(),
+      last_scanned_at: null,
+    };
+    const newAccounts = [...accounts, newAccount];
+    setAccounts(newAccounts);
+    saveAccountsToLocal(newAccounts);
   };
 
   // Remove account from watchlist
   const handleRemoveAccount = async (id: string) => {
-    const res = await fetch(`/api/pulse/watchlist?id=${id}`, {
-      method: 'DELETE',
-    });
-    if (!res.ok) throw new Error('Failed to remove account');
-    await fetchAccounts();
+    // Try API first
+    try {
+      const res = await fetch(`/api/pulse/watchlist?id=${id}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        await fetchAccounts();
+        return;
+      }
+    } catch {
+      // Fallback to localStorage
+    }
+
+    // Remove from localStorage
+    const newAccounts = accounts.filter(a => a.id !== id);
+    setAccounts(newAccounts);
+    saveAccountsToLocal(newAccounts);
   };
 
   // Run watchlist scan
@@ -107,12 +186,55 @@ export default function PulseTab() {
         body: JSON.stringify({ handles }),
       });
 
-      if (!res.ok) {
-        const data = await res.json();
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
         throw new Error(data.error || 'Scan failed');
       }
 
-      await fetchInsights();
+      // Parse insights from response and save to localStorage
+      const parsedInsights = data.insights;
+      if (parsedInsights && parsedInsights.insights) {
+        const newInsights: PulseInsight[] = parsedInsights.insights.map((insight: any) => ({
+          id: generateId(),
+          headline: insight.headline || 'New Insight',
+          subtitle: insight.subtitle || null,
+          category: (insight.category?.toLowerCase() || 'ambition') as PulseInsight['category'],
+          urgency: insight.urgency || 'medium',
+          summary: insight.summary || null,
+          why_this_matters: insight.whyThisMattersForABH || null,
+          key_insight: insight.keyInsight || null,
+          score_ambition: insight.abhScore?.ambition || 0,
+          score_community: insight.abhScore?.community || 0,
+          score_growth: insight.abhScore?.growth || 0,
+          score_realness: insight.abhScore?.realness || 0,
+          score_twenties: insight.abhScore?.twenties || 0,
+          score_composite: insight.abhScore?.composite || 0,
+          key_posts: insight.keyPosts || [],
+          involved_accounts: insight.involvedAccounts || [],
+          related_topics: insight.relatedTopics || [],
+          engagement_type: insight.engagementOpportunity?.type || null,
+          engagement_angle: insight.engagementOpportunity?.suggestedAngle || null,
+          scanned_at: new Date().toISOString(),
+          status: 'new' as const,
+          source_citations: data.citations || null,
+        }));
+
+        // Merge with existing insights
+        const existingInsights = JSON.parse(localStorage.getItem(INSIGHTS_KEY) || '[]');
+        const allInsights = [...newInsights, ...existingInsights];
+        saveInsightsToLocal(allInsights);
+        setInsights(allInsights);
+      }
+
+      // Update last scanned
+      const updatedAccounts = accounts.map(a => ({
+        ...a,
+        last_scanned_at: new Date().toISOString(),
+      }));
+      setAccounts(updatedAccounts);
+      saveAccountsToLocal(updatedAccounts);
+
     } catch (err) {
       console.error('Scan error:', err);
       setError(err instanceof Error ? err.message : 'Scan failed');
@@ -251,11 +373,20 @@ export default function PulseTab() {
               key={insight.id}
               {...transformInsight(insight)}
               onDismiss={async (id) => {
-                await fetch(`/api/pulse/insights/${id}`, {
-                  method: 'PATCH',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ status: 'dismissed' }),
-                });
+                // Try API first
+                try {
+                  await fetch(`/api/pulse/insights/${id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: 'dismissed' }),
+                  });
+                } catch {
+                  // Fallback handled below
+                }
+                // Also remove from localStorage
+                const allInsights = JSON.parse(localStorage.getItem(INSIGHTS_KEY) || '[]');
+                const filtered = allInsights.filter((i: PulseInsight) => i.id !== id);
+                saveInsightsToLocal(filtered);
                 setInsights(prev => prev.filter(i => i.id !== id));
               }}
               onEngage={async (id) => {
