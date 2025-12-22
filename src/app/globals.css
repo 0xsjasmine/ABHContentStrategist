@@ -1,10 +1,10 @@
 @import "tailwindcss";
 
 :root {
-  /* ABH Color Palette - Chic & Minimal */
-  --burgundy: #8B2635;
-  --burgundy-dark: #6B1D29;
-  --burgundy-light: #A62F41;
+  /* ABH Color Palette - Call Her Daddy Red */
+  --red: #C41E3A;
+  --red-dark: #A31830;
+  --red-light: #D94452;
   --gold: #D4A520;
   --gold-dark: #B8901A;
   --gold-light: #E5B833;
@@ -20,10 +20,10 @@
   --text-primary: #1A1A1A;
   --text-secondary: #666666;
   --text-muted: #999999;
-  --text-burgundy: var(--burgundy);
+  --text-red: var(--red);
 
   /* Accents */
-  --accent-primary: var(--burgundy);
+  --accent-primary: var(--red);
   --accent-secondary: var(--gold);
 
   /* Borders - Subtle */
@@ -35,7 +35,7 @@
 @theme inline {
   --color-background: var(--bg-base);
   --color-foreground: var(--text-primary);
-  --color-burgundy: var(--burgundy);
+  --color-red: var(--red);
   --color-gold: var(--gold);
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-serif: Georgia, "Times New Roman", serif;
@@ -80,7 +80,7 @@ body {
 
 /* Section Title - HSR Style (Caps) */
 .section-title {
-  color: var(--burgundy);
+  color: var(--red);
   font-weight: 600;
   font-size: 0.75rem;
   letter-spacing: 0.05em;
@@ -92,7 +92,7 @@ body {
 }
 
 .insight-card-section-title {
-  color: var(--burgundy);
+  color: var(--red);
   font-weight: 600;
   font-size: 0.875rem;
   margin-bottom: 0.5rem;
@@ -103,7 +103,7 @@ body {
 
 /* ABH Score Badge */
 .abh-score {
-  background: var(--burgundy);
+  background: var(--red);
   color: white;
   border-radius: 8px;
   padding: 0.5rem 0.75rem;
@@ -136,8 +136,8 @@ body {
   border: 1px solid var(--border-light);
 }
 
-.category-badge-burgundy {
-  background: var(--burgundy);
+.category-badge-red {
+  background: var(--red);
   color: white;
   border: none;
 }
@@ -150,7 +150,7 @@ body {
   border-radius: 999px;
   font-size: 0.75rem;
   font-weight: 500;
-  background: var(--burgundy);
+  background: var(--red);
   color: white;
 }
 
@@ -163,7 +163,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--burgundy);
+  color: var(--red);
   border: 1px solid var(--border-light);
 }
 
@@ -174,14 +174,14 @@ body {
   padding: 1.25rem;
   font-style: italic;
   color: var(--text-primary);
-  border-left: 3px solid var(--burgundy);
+  border-left: 3px solid var(--red);
 }
 
 /* Key Takeaways */
 .takeaway-number {
   width: 24px;
   height: 24px;
-  background: var(--burgundy);
+  background: var(--red);
   color: white;
   border-radius: 6px;
   display: flex;
@@ -206,7 +206,7 @@ body {
 .person-avatar {
   width: 40px;
   height: 40px;
-  background: var(--burgundy);
+  background: var(--red);
   border-radius: 999px;
   display: flex;
   align-items: center;
@@ -303,13 +303,13 @@ body {
 
 /* Focus styles */
 *:focus-visible {
-  outline: 2px solid var(--burgundy);
+  outline: 2px solid var(--red);
   outline-offset: 2px;
 }
 
 /* Selection */
 ::selection {
-  background-color: var(--burgundy);
+  background-color: var(--red);
   color: white;
 }
 
@@ -373,8 +373,8 @@ body {
   color: #16A34A;
 }
 
-.pill-burgundy {
-  background: var(--burgundy);
+.pill-red {
+  background: var(--red);
   color: white;
 }
 
@@ -389,7 +389,7 @@ input::placeholder, textarea::placeholder {
 
 /* Button styles */
 .btn-primary {
-  background: var(--burgundy);
+  background: var(--red);
   color: white;
   border-radius: 8px;
   padding: 0.625rem 1rem;
@@ -398,7 +398,7 @@ input::placeholder, textarea::placeholder {
 }
 
 .btn-primary:hover {
-  background: var(--burgundy-dark);
+  background: var(--red-dark);
 }
 
 .btn-secondary {
@@ -436,7 +436,7 @@ input::placeholder, textarea::placeholder {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: var(--burgundy);
+  background: var(--red);
   color: white;
   display: flex;
   align-items: center;
@@ -460,7 +460,7 @@ input::placeholder, textarea::placeholder {
 .typing-indicator span {
   width: 8px;
   height: 8px;
-  background: var(--burgundy);
+  background: var(--red);
   border-radius: 50%;
   animation: typing 1.4s ease-in-out infinite;
 }
@@ -515,13 +515,14 @@ input::placeholder, textarea::placeholder {
 }
 
 .segmented-tab-active {
-  background: var(--text-primary);
-  color: white;
+  background: transparent;
+  color: var(--red);
+  font-weight: 600;
 }
 
 .segmented-tab-active:hover {
-  background: var(--text-primary);
-  color: white;
+  background: transparent;
+  color: var(--red);
 }
 
 /* Segmented Tabs with Count Badge */
@@ -538,7 +539,7 @@ input::placeholder, textarea::placeholder {
 }
 
 .segmented-tab-active .segmented-tab-badge {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--red);
   color: white;
 }
 

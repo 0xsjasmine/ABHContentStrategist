@@ -1,15 +1,7 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
-import {
-  PenSquare,
-  Sparkles,
-  BookOpen,
-  Radio,
-  Edit3,
-  Settings,
-  X,
-} from 'lucide-react';
+import { X } from 'lucide-react';
 import type { TabId } from '@/types';
 
 interface LayoutProps {
@@ -19,92 +11,64 @@ interface LayoutProps {
 }
 
 const tabs = [
-  { id: 'diary' as TabId, icon: PenSquare, label: 'Diary' },
-  { id: 'pulse' as TabId, icon: Radio, label: 'PULSE' },
-  { id: 'vibe' as TabId, icon: Sparkles, label: 'VIBE' },
-  { id: 'studio' as TabId, icon: Edit3, label: 'STUDIO' },
-  { id: 'library' as TabId, icon: BookOpen, label: 'Library' },
+  { id: 'diary' as TabId, label: 'Diary' },
+  { id: 'pulse' as TabId, label: 'PULSE' },
+  { id: 'vibe' as TabId, label: 'VIBE' },
+  { id: 'studio' as TabId, label: 'STUDIO' },
+  { id: 'library' as TabId, label: 'Library' },
 ];
 
 export default function Layout({ children, activeTab, onTabChange }: LayoutProps) {
   const [showSettings, setShowSettings] = useState(false);
-  const [sidebarExpanded, setSidebarExpanded] = useState(false);
 
   return (
     <div className="min-h-screen flex bg-white">
-      {/* Side Navigation */}
-      <nav
-        className={`
-          sidebar fixed left-0 top-0 h-full z-40
-          flex flex-col py-6
-          transition-all duration-200 ease-out
-          ${sidebarExpanded ? 'w-44' : 'w-16'}
-        `}
-        onMouseEnter={() => setSidebarExpanded(true)}
-        onMouseLeave={() => setSidebarExpanded(false)}
-      >
+      {/* Side Navigation - Always Expanded (Text Only) */}
+      <nav className="sidebar fixed left-0 top-0 h-full z-40 flex flex-col py-6 w-32">
         {/* Logo / Brand */}
         <div className="mb-8 px-4">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--burgundy)' }}>
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[#C41E3A]">
             <span className="text-white text-sm font-semibold">A</span>
           </div>
         </div>
 
-        {/* Nav Items */}
+        {/* Nav Items - Text Only */}
         <div className="flex-1 flex flex-col gap-1 w-full px-2">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
-            const Icon = tab.icon;
             return (
               <button
                 key={tab.id}
                 onClick={() => onTabChange(tab.id)}
                 className={`
-                  group flex items-center gap-3 px-3 py-2.5 rounded-lg
+                  px-3 py-2.5 rounded-lg text-left
                   transition-colors duration-150 w-full
+                  text-sm font-medium
                   ${isActive
-                    ? 'bg-[#F5F5F5] text-[#1A1A1A]'
-                    : 'text-[#666] hover:bg-[#FAFAFA] hover:text-[#1A1A1A]'
+                    ? 'text-[#C41E3A]'
+                    : 'text-[#666] hover:text-[#1A1A1A]'
                   }
                 `}
               >
-                <Icon className="w-5 h-5 flex-shrink-0" />
-                <span
-                  className={`
-                    text-sm font-medium whitespace-nowrap overflow-hidden
-                    transition-opacity duration-200
-                    ${sidebarExpanded ? 'opacity-100' : 'opacity-0'}
-                  `}
-                >
-                  {tab.label}
-                </span>
+                {tab.label}
               </button>
             );
           })}
         </div>
 
-        {/* Settings */}
+        {/* Settings - Text Only */}
         <div className="px-2 w-full">
           <button
             onClick={() => setShowSettings(true)}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#FAFAFA] transition-colors w-full text-[#666] hover:text-[#1A1A1A]"
+            className="px-3 py-2.5 rounded-lg text-left w-full text-sm font-medium text-[#666] hover:text-[#1A1A1A] transition-colors"
           >
-            <Settings className="w-5 h-5" />
-            <span
-              className={`
-                text-sm font-medium whitespace-nowrap overflow-hidden
-                transition-opacity duration-200
-                ${sidebarExpanded ? 'opacity-100' : 'opacity-0'}
-              `}
-            >
-              Settings
-            </span>
+            Settings
           </button>
         </div>
       </nav>
 
       {/* Main Content */}
-      <main className="flex-1 ml-16 min-h-screen bg-white">
+      <main className="flex-1 ml-32 min-h-screen bg-white">
         <div className="max-w-6xl mx-auto px-8 py-10">
           {children}
         </div>
