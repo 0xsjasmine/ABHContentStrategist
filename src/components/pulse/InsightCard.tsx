@@ -1,7 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { ABHCategory, ABHScore, KeyPost, EngagementOpportunity } from '@/types/database';
+
+// Pillar config for badges
+const PILLAR_CONFIG = {
+  friendships: { label: 'Friendships', color: 'bg-pink-100 text-pink-700' },
+  ai: { label: 'AI', color: 'bg-blue-100 text-blue-700' },
+  ambition: { label: 'Ambition', color: 'bg-purple-100 text-purple-700' },
+  twenties: { label: 'Twenties', color: 'bg-amber-100 text-amber-700' },
+};
 
 // Icons
 const CrownIcon = () => (
@@ -52,6 +60,98 @@ const ChatIcon = () => (
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
   </svg>
 );
+
+// Twitter Embed Component
+function TweetEmbed({ url }: { url: string }) {
+  const embedRef = useRef<HTMLDivElement>(null);
+  const [embedHtml, setEmbedHtml] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    async function fetchEmbed() {
+      if (!url) return;
+      try {
+        const oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(url)}&omit_script=true`;
+        const res = await fetch(oembedUrl);
+        if (res.ok) {
+          const data = await res.json();
+          setEmbedHtml(data.html);
+        } else {
+          setError(true);
+        }
+      } catch {
+        setError(true);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchEmbed();
+  }, [url]);
+
+  useEffect(() => {
+    if (embedHtml && embedRef.current) {
+      const loadWidget = () => {
+        const twttr = (window as unknown as { twttr?: { widgets?: { load?: (el: HTMLElement) => void } } }).twttr;
+        if (twttr?.widgets?.load && embedRef.current) {
+          twttr.widgets.load(embedRef.current);
+        }
+      };
+
+      const twttr = (window as unknown as { twttr?: { widgets?: { load?: (el: HTMLElement) => void } } }).twttr;
+      if (twttr?.widgets?.load) {
+        setTimeout(loadWidget, 50);
+      } else {
+        const existingScript = document.querySelector('script[src="https://platform.twitter.com/widgets.js"]');
+        if (!existingScript) {
+          const script = document.createElement('script');
+          script.src = 'https://platform.twitter.com/widgets.js';
+          script.async = true;
+          script.onload = () => setTimeout(loadWidget, 50);
+          document.body.appendChild(script);
+        } else {
+          setTimeout(loadWidget, 100);
+        }
+      }
+    }
+  }, [embedHtml]);
+
+  if (isLoading) {
+    return (
+      <div className="border border-gray-200 rounded-xl p-4 bg-gray-50 animate-pulse">
+        <div className="h-4 bg-gray-200 rounded w-1/3 mb-2"></div>
+        <div className="h-3 bg-gray-200 rounded w-full mb-1"></div>
+        <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+      </div>
+    );
+  }
+
+  if (error || !embedHtml) {
+    return (
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block border border-gray-200 rounded-xl p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
+      >
+        <div className="flex items-center gap-2 text-sm text-gray-600">
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+          </svg>
+          View on X →
+        </div>
+      </a>
+    );
+  }
+
+  return (
+    <div
+      ref={embedRef}
+      className="[&_blockquote]:!m-0 [&_blockquote]:!border-0 [&_.twitter-tweet]:!m-0 [&_iframe]:!max-w-full"
+      dangerouslySetInnerHTML={{ __html: embedHtml }}
+    />
+  );
+}
 
 const XIcon = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -161,6 +261,29 @@ export default function InsightCard({
                 {subtitle}
               </p>
             )}
+            {/* Pillar Badges */}
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {abhScore.friendships > 5 && (
+                <span className={`text-xs px-2 py-0.5 rounded-full ${PILLAR_CONFIG.friendships.color}`}>
+                  Friendships {abhScore.friendships}
+                </span>
+              )}
+              {abhScore.ai > 5 && (
+                <span className={`text-xs px-2 py-0.5 rounded-full ${PILLAR_CONFIG.ai.color}`}>
+                  AI {abhScore.ai}
+                </span>
+              )}
+              {abhScore.ambition > 5 && (
+                <span className={`text-xs px-2 py-0.5 rounded-full ${PILLAR_CONFIG.ambition.color}`}>
+                  Ambition {abhScore.ambition}
+                </span>
+              )}
+              {abhScore.twenties > 5 && (
+                <span className={`text-xs px-2 py-0.5 rounded-full ${PILLAR_CONFIG.twenties.color}`}>
+                  Twenties {abhScore.twenties}
+                </span>
+              )}
+            </div>
           </div>
           <div className="abh-score">
             <span>{abhScore.composite}/10</span>
@@ -274,32 +397,26 @@ export default function InsightCard({
             </div>
             <div className="space-y-3">
               {keyPosts.slice(0, isExpanded ? keyPosts.length : 2).map((post, idx) => (
-                <div key={idx} className="border border-gray-200 rounded-xl p-4 bg-white">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="person-avatar w-8 h-8 text-xs">
-                      {post.handle.replace('@', '').charAt(0).toUpperCase()}
-                    </div>
-                    <span className="font-medium text-sm">{post.handle}</span>
-                    {post.tweetUrl && (
-                      <a
-                        href={post.tweetUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="ml-auto text-gray-400 hover:text-gray-600"
-                      >
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                        </svg>
-                      </a>
-                    )}
-                  </div>
-                  <p className="text-sm text-gray-700">
-                    {post.postText || post.postSummary}
-                  </p>
-                  {(post.likes || post.retweets) && (
-                    <div className="flex gap-4 mt-2 text-xs text-gray-500">
-                      {post.likes && <span>❤️ {post.likes.toLocaleString()}</span>}
-                      {post.retweets && <span>🔄 {post.retweets.toLocaleString()}</span>}
+                <div key={idx}>
+                  {post.tweetUrl ? (
+                    <TweetEmbed url={post.tweetUrl} />
+                  ) : (
+                    <div className="border border-gray-200 rounded-xl p-4 bg-white">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="person-avatar w-8 h-8 text-xs">
+                          {post.handle.replace('@', '').charAt(0).toUpperCase()}
+                        </div>
+                        <span className="font-medium text-sm">{post.handle}</span>
+                      </div>
+                      <p className="text-sm text-gray-700">
+                        {post.postText || post.postSummary}
+                      </p>
+                      {(post.likes || post.retweets) && (
+                        <div className="flex gap-4 mt-2 text-xs text-gray-500">
+                          {post.likes && <span>❤️ {post.likes.toLocaleString()}</span>}
+                          {post.retweets && <span>🔄 {post.retweets.toLocaleString()}</span>}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

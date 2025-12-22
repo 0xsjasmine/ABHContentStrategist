@@ -8,17 +8,49 @@ import type { WatchlistAccount, PulseInsight } from '@/lib/supabase';
 import type { ABHCategory, ABHScore, KeyPost, EngagementOpportunity } from '@/types/database';
 import { Settings, RefreshCw } from 'lucide-react';
 
-const categoryTabs = [
+const filterTabs = [
   { id: 'all', label: 'All' },
-  { id: 'friendships', label: 'Friendships' },
-  { id: 'ai', label: 'AI' },
-  { id: 'ambition', label: 'Ambition' },
-  { id: 'twenties', label: 'Twenties' },
+  { id: 'hot', label: 'Hot Now' },
+  { id: 'people', label: 'People' },
+  { id: 'topics', label: 'Topics' },
+  { id: 'saved', label: 'Saved' },
 ];
+
+// Helper to get date group label
+function getDateGroup(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const lastWeek = new Date(today);
+  lastWeek.setDate(lastWeek.getDate() - 7);
+
+  if (date >= today) return 'Today';
+  if (date >= yesterday) return 'Yesterday';
+  if (date >= lastWeek) return 'This Week';
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+// Group insights by date
+function groupInsightsByDate<T extends { scanned_at: string }>(insights: T[]): Map<string, T[]> {
+  const groups = new Map<string, T[]>();
+
+  insights.forEach(insight => {
+    const group = getDateGroup(insight.scanned_at);
+    if (!groups.has(group)) {
+      groups.set(group, []);
+    }
+    groups.get(group)!.push(insight);
+  });
+
+  return groups;
+}
 
 // Local storage keys
 const WATCHLIST_KEY = 'abh_pulse_watchlist';
 const INSIGHTS_KEY = 'abh_pulse_insights';
+const SAVED_KEY = 'abh_pulse_saved';
 
 // Helper to generate IDs
 const generateId = () => crypto.randomUUID();
@@ -29,9 +61,22 @@ export default function PulseTab() {
   const [isLoadingAccounts, setIsLoadingAccounts] = useState(true);
   const [isLoadingInsights, setIsLoadingInsights] = useState(true);
   const [isScanning, setIsScanning] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedFilter, setSelectedFilter] = useState('all');
   const [showWatchlist, setShowWatchlist] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [savedInsightIds, setSavedInsightIds] = useState<Set<string>>(new Set());
+
+  // Load saved insight IDs from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem(SAVED_KEY);
+    if (saved) {
+      try {
+        setSavedInsightIds(new Set(JSON.parse(saved)));
+      } catch {
+        setSavedInsightIds(new Set());
+      }
+    }
+  }, []);
 
   // Load watchlist from localStorage
   const fetchAccounts = useCallback(async () => {
@@ -66,11 +111,7 @@ export default function PulseTab() {
   const fetchInsights = useCallback(async () => {
     try {
       // Try API first (Supabase)
-      const params = new URLSearchParams();
-      if (selectedCategory !== 'all') {
-        params.set('category', selectedCategory);
-      }
-      const res = await fetch(`/api/pulse/insights?${params}`);
+      const res = await fetch('/api/pulse/insights');
       if (res.ok) {
         const data = await res.json();
         if (data.insights && data.insights.length > 0) {
@@ -88,16 +129,13 @@ export default function PulseTab() {
     if (saved) {
       try {
         const allInsights: PulseInsight[] = JSON.parse(saved);
-        const filtered = selectedCategory === 'all'
-          ? allInsights
-          : allInsights.filter(i => i.category === selectedCategory);
-        setInsights(filtered);
+        setInsights(allInsights);
       } catch {
         setInsights([]);
       }
     }
     setIsLoadingInsights(false);
-  }, [selectedCategory]);
+  }, []);
 
   useEffect(() => {
     fetchAccounts();
@@ -271,9 +309,42 @@ export default function PulseTab() {
     };
   };
 
-  const filteredInsights = selectedCategory === 'all'
-    ? insights
-    : insights.filter(i => i.category === selectedCategory);
+  // Save/unsave insight
+  const toggleSaveInsight = (id: string) => {
+    const newSaved = new Set(savedInsightIds);
+    if (newSaved.has(id)) {
+      newSaved.delete(id);
+    } else {
+      newSaved.add(id);
+    }
+    setSavedInsightIds(newSaved);
+    localStorage.setItem(SAVED_KEY, JSON.stringify([...newSaved]));
+  };
+
+  // Filter insights based on selected tab
+  const getFilteredInsights = () => {
+    switch (selectedFilter) {
+      case 'hot':
+        // Hot = high urgency or high composite score (7+), sorted by recency
+        return insights
+          .filter(i => i.urgency === 'high' || (i.score_composite || 0) >= 7)
+          .sort((a, b) => new Date(b.scanned_at).getTime() - new Date(a.scanned_at).getTime());
+      case 'people':
+        // People = insights with involved accounts
+        return insights.filter(i => (i.involved_accounts || []).length > 0);
+      case 'topics':
+        // Topics = insights with related topics
+        return insights.filter(i => (i.related_topics || []).length > 0);
+      case 'saved':
+        // Saved = insights the user has saved
+        return insights.filter(i => savedInsightIds.has(i.id));
+      default:
+        return insights;
+    }
+  };
+
+  const filteredInsights = getFilteredInsights();
+  const groupedInsights = groupInsightsByDate(filteredInsights);
 
   return (
     <div className="space-y-6">
@@ -328,11 +399,11 @@ export default function PulseTab() {
         </div>
       )}
 
-      {/* Segmented Category Tabs */}
+      {/* Segmented Filter Tabs */}
       <SegmentedTabs
-        tabs={categoryTabs}
-        activeTab={selectedCategory}
-        onChange={setSelectedCategory}
+        tabs={filterTabs}
+        activeTab={selectedFilter}
+        onChange={setSelectedFilter}
       />
 
       {/* Content */}
@@ -348,48 +419,83 @@ export default function PulseTab() {
         </div>
       ) : filteredInsights.length === 0 ? (
         <div className="text-center py-20">
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No insights yet</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            {selectedFilter === 'saved' ? 'No saved insights' : 'No insights yet'}
+          </h3>
           <p className="text-gray-500 mb-6 max-w-sm mx-auto">
-            {accounts.length === 0
+            {selectedFilter === 'saved'
+              ? 'Save insights you want to revisit later.'
+              : accounts.length === 0
               ? 'Add accounts to your watchlist to start discovering insights.'
               : 'Run a scan to discover what your watchlist is talking about.'
             }
           </p>
-          <button
-            onClick={accounts.length === 0 ? () => setShowWatchlist(true) : handleScan}
-            disabled={isScanning}
-            className="btn-primary"
-          >
-            {accounts.length === 0 ? 'Add Accounts' : isScanning ? 'Scanning...' : 'Scan Now'}
-          </button>
+          {selectedFilter !== 'saved' && (
+            <button
+              onClick={accounts.length === 0 ? () => setShowWatchlist(true) : handleScan}
+              disabled={isScanning}
+              className="btn-primary"
+            >
+              {accounts.length === 0 ? 'Add Accounts' : isScanning ? 'Scanning...' : 'Scan Now'}
+            </button>
+          )}
         </div>
       ) : (
-        <div className="space-y-4">
-          {filteredInsights.map((insight) => (
-            <InsightCard
-              key={insight.id}
-              {...transformInsight(insight)}
-              onDismiss={async (id) => {
-                // Try API first
-                try {
-                  await fetch(`/api/pulse/insights/${id}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status: 'dismissed' }),
-                  });
-                } catch {
-                  // Fallback handled below
-                }
-                // Also remove from localStorage
-                const allInsights = JSON.parse(localStorage.getItem(INSIGHTS_KEY) || '[]');
-                const filtered = allInsights.filter((i: PulseInsight) => i.id !== id);
-                saveInsightsToLocal(filtered);
-                setInsights(prev => prev.filter(i => i.id !== id));
-              }}
-              onEngage={async (id) => {
-                console.log('Engage with insight:', id);
-              }}
-            />
+        <div className="space-y-6">
+          {Array.from(groupedInsights.entries()).map(([dateGroup, groupInsights]) => (
+            <div key={dateGroup}>
+              {/* Date Group Header */}
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-sm font-semibold text-gray-900">{dateGroup}</span>
+                <div className="flex-1 h-px bg-gray-200"></div>
+                <span className="text-xs text-gray-400">{groupInsights.length} insight{groupInsights.length !== 1 ? 's' : ''}</span>
+              </div>
+
+              {/* Insights in this group */}
+              <div className="space-y-4">
+                {groupInsights.map((insight) => (
+                  <div key={insight.id} className="relative">
+                    {/* Save Button */}
+                    <button
+                      onClick={() => toggleSaveInsight(insight.id)}
+                      className={`absolute top-4 right-14 z-10 p-1.5 rounded-lg transition-colors ${
+                        savedInsightIds.has(insight.id)
+                          ? 'bg-amber-100 text-amber-600'
+                          : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                      }`}
+                      title={savedInsightIds.has(insight.id) ? 'Remove from saved' : 'Save for later'}
+                    >
+                      <svg className="w-4 h-4" fill={savedInsightIds.has(insight.id) ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                      </svg>
+                    </button>
+                    <InsightCard
+                      {...transformInsight(insight)}
+                      onDismiss={async (id) => {
+                        // Try API first
+                        try {
+                          await fetch(`/api/pulse/insights/${id}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ status: 'dismissed' }),
+                          });
+                        } catch {
+                          // Fallback handled below
+                        }
+                        // Also remove from localStorage
+                        const allInsights = JSON.parse(localStorage.getItem(INSIGHTS_KEY) || '[]');
+                        const filtered = allInsights.filter((i: PulseInsight) => i.id !== id);
+                        saveInsightsToLocal(filtered);
+                        setInsights(prev => prev.filter(i => i.id !== id));
+                      }}
+                      onEngage={async (id) => {
+                        console.log('Engage with insight:', id);
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       )}
