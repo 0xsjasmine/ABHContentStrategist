@@ -67,9 +67,7 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
   };
 
   const getEntriesForPillar = useCallback((pillarId: PillarId) => {
-    return entries.filter(e =>
-      e.tags?.includes(pillarId) || e.type === pillarToType[pillarId]
-    );
+    return entries.filter(e => e.tags?.includes(pillarId));
   }, [entries]);
 
   const selectedEntry = entries.find(e => e.id === selectedEntryId);
