@@ -17,7 +17,13 @@ import {
   Wand2,
   Scale,
   Trash2,
-  ExternalLink
+  ExternalLink,
+  MessageSquareQuote,
+  Users,
+  TrendingUp,
+  Heart,
+  Target,
+  AlertCircle
 } from 'lucide-react';
 import type { TweetAnalysis, AIAnalysis } from '@/types';
 
@@ -163,9 +169,9 @@ function SwipeModal({
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
 
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Header */}
+        {/* Header - Clean, no tweet preview */}
         <div className="px-6 py-4 border-b border-[#EEE] bg-gradient-to-r from-[#FFF5F5] to-white">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <ScoreBadge score={avgScore} size="lg" />
               <div>
@@ -177,9 +183,6 @@ function SwipeModal({
               <X className="w-5 h-5 text-[#999]" />
             </button>
           </div>
-
-          {/* Tweet Preview */}
-          <p className="text-sm text-[#666] line-clamp-2">{analysis.tweet.text}</p>
         </div>
 
         {/* Slide Indicators */}
@@ -241,7 +244,17 @@ function SwipeModal({
   );
 }
 
-// AI Analysis Slide (Grok or Claude) - Pulse Style
+// Helper to split analysis text into bullet points
+function splitIntoBullets(text: string): string[] {
+  if (!text) return [];
+  // Split by sentences (period followed by space or end)
+  return text
+    .split(/\.(?:\s|$)/)
+    .map(s => s.trim())
+    .filter(s => s.length > 0);
+}
+
+// AI Analysis Slide (Grok or Claude) - Bullet Point Style
 function AISlide({ analysis, isGrok }: { analysis: AIAnalysis; isGrok: boolean }) {
   const Icon = isGrok ? Radio : Sparkles;
   const name = isGrok ? "Grok" : "Claude";
@@ -249,6 +262,10 @@ function AISlide({ analysis, isGrok }: { analysis: AIAnalysis; isGrok: boolean }
 
   // Calculate average score
   const avgScore = Math.round((analysis.curiosityGap.score + analysis.predictionViolation.score + analysis.habituationBypass.score) / 3);
+
+  const curiosityBullets = splitIntoBullets(analysis.curiosityGap.analysis);
+  const violationBullets = splitIntoBullets(analysis.predictionViolation.analysis);
+  const bypassBullets = splitIntoBullets(analysis.habituationBypass.analysis);
 
   return (
     <div className="space-y-5">
@@ -268,33 +285,54 @@ function AISlide({ analysis, isGrok }: { analysis: AIAnalysis; isGrok: boolean }
         </div>
       </div>
 
-      {/* Analysis Breakdown - With Explanations */}
+      {/* Analysis Breakdown - Bullet Points */}
       <div className="space-y-4">
         {/* Curiosity Gap */}
         <div>
-          <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-[#1A1A1A]">Curiosity Gap</span>
             <span className="text-sm font-semibold text-[#C41E3A]">{analysis.curiosityGap.score}/10</span>
           </div>
-          <p className="text-sm text-[#666]">{analysis.curiosityGap.analysis}</p>
+          <ul className="space-y-1.5">
+            {curiosityBullets.map((bullet, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm text-[#666]">
+                <span className="text-[#C41E3A] mt-1">•</span>
+                <span>{bullet}</span>
+              </li>
+            ))}
+          </ul>
         </div>
 
         {/* Prediction Violation */}
         <div>
-          <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-[#1A1A1A]">Prediction Violation</span>
             <span className="text-sm font-semibold text-[#C41E3A]">{analysis.predictionViolation.score}/10</span>
           </div>
-          <p className="text-sm text-[#666]">{analysis.predictionViolation.analysis}</p>
+          <ul className="space-y-1.5">
+            {violationBullets.map((bullet, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm text-[#666]">
+                <span className="text-[#C41E3A] mt-1">•</span>
+                <span>{bullet}</span>
+              </li>
+            ))}
+          </ul>
         </div>
 
         {/* Habituation Bypass */}
         <div>
-          <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-[#1A1A1A]">Habituation Bypass</span>
             <span className="text-sm font-semibold text-[#C41E3A]">{analysis.habituationBypass.score}/10</span>
           </div>
-          <p className="text-sm text-[#666]">{analysis.habituationBypass.analysis}</p>
+          <ul className="space-y-1.5">
+            {bypassBullets.map((bullet, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm text-[#666]">
+                <span className="text-[#C41E3A] mt-1">•</span>
+                <span>{bullet}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
 
@@ -309,8 +347,33 @@ function AISlide({ analysis, isGrok }: { analysis: AIAnalysis; isGrok: boolean }
   );
 }
 
-// Compare Slide - Simplified Pulse Style
+// ABH Pillars
+const ABH_PILLARS = [
+  { key: 'ambition', label: 'Ambition', icon: Target, color: 'text-purple-600', bg: 'bg-purple-100' },
+  { key: 'community', label: 'Community', icon: Users, color: 'text-blue-600', bg: 'bg-blue-100' },
+  { key: 'growth', label: 'Growth', icon: TrendingUp, color: 'text-green-600', bg: 'bg-green-100' },
+  { key: 'realness', label: 'Realness', icon: Heart, color: 'text-pink-600', bg: 'bg-pink-100' },
+  { key: 'twenties', label: 'Twenties', icon: Sparkles, color: 'text-amber-600', bg: 'bg-amber-100' },
+];
+
+// Compare Slide - With ABH Pillar Analysis
 function CompareSlide({ analysis }: { analysis: TweetAnalysis }) {
+  // Calculate ABH pillar scores based on content analysis
+  // This is a simplified heuristic - in production, the AI would score these
+  const avgScore = Math.round(
+    (analysis.grokAnalysis.curiosityGap.score + analysis.claudeAnalysis.curiosityGap.score +
+     analysis.grokAnalysis.predictionViolation.score + analysis.claudeAnalysis.predictionViolation.score) / 4
+  );
+
+  // Simple pillar scoring based on content themes
+  const pillarScores = {
+    ambition: avgScore >= 7 ? 8 : avgScore >= 5 ? 6 : 4,
+    community: analysis.agreements.points.some(p => p.toLowerCase().includes('permission') || p.toLowerCase().includes('relat')) ? 8 : 5,
+    growth: analysis.agreements.points.some(p => p.toLowerCase().includes('learn') || p.toLowerCase().includes('wisdom')) ? 7 : 5,
+    realness: avgScore >= 7 ? 9 : 6, // High engagement usually = realness
+    twenties: analysis.agreements.points.some(p => p.toLowerCase().includes('generation') || p.toLowerCase().includes('ai')) ? 7 : 5,
+  };
+
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -320,7 +383,31 @@ function CompareSlide({ analysis }: { analysis: TweetAnalysis }) {
         </div>
         <div>
           <h3 className="text-lg font-semibold text-[#1A1A1A]">The Verdict</h3>
-          <p className="text-sm text-[#C41E3A] font-medium">Where Grok & Claude align and diverge</p>
+          <p className="text-sm text-[#C41E3A] font-medium">How this fits the ABH strategy</p>
+        </div>
+      </div>
+
+      {/* ABH Pillar Fit */}
+      <div>
+        <h4 className="flex items-center gap-2 text-sm font-semibold text-[#1A1A1A] mb-3">
+          <Target className="w-4 h-4 text-[#C41E3A]" /> ABH Pillar Fit
+        </h4>
+        <div className="grid grid-cols-5 gap-2">
+          {ABH_PILLARS.map((pillar) => {
+            const Icon = pillar.icon;
+            const score = pillarScores[pillar.key as keyof typeof pillarScores];
+            return (
+              <div key={pillar.key} className="text-center">
+                <div className={`w-10 h-10 mx-auto rounded-lg ${pillar.bg} flex items-center justify-center mb-1`}>
+                  <Icon className={`w-5 h-5 ${pillar.color}`} />
+                </div>
+                <p className="text-xs font-medium text-[#666]">{pillar.label}</p>
+                <p className={`text-xs font-bold ${score >= 7 ? 'text-green-600' : score >= 5 ? 'text-amber-600' : 'text-gray-400'}`}>
+                  {score}/10
+                </p>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -345,9 +432,9 @@ function CompareSlide({ analysis }: { analysis: TweetAnalysis }) {
           <ArrowRight className="w-4 h-4 text-blue-600" /> Different Perspectives
         </h4>
         <div className="space-y-3">
-          <div className="bg-blue-50 rounded-xl p-4">
+          <div className="bg-red-50 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
-              <Radio className="w-4 h-4 text-blue-600" />
+              <Radio className="w-4 h-4 text-[#C41E3A]" />
               <span className="text-sm font-medium text-[#1A1A1A]">Grok says...</span>
             </div>
             <p className="text-sm text-[#666] italic">&quot;{analysis.differences.grokFocus}&quot;</p>
@@ -362,36 +449,43 @@ function CompareSlide({ analysis }: { analysis: TweetAnalysis }) {
         </div>
       </div>
 
-      {/* Score Comparison - Simple Table */}
-      <div className="bg-[#FAFAFA] rounded-xl p-4">
-        <h4 className="text-sm font-semibold text-[#1A1A1A] mb-3">Score Breakdown</h4>
-        <div className="grid grid-cols-4 gap-2 text-center text-xs">
-          <div></div>
-          <div className="font-medium text-[#666]">Gap</div>
-          <div className="font-medium text-[#666]">Violation</div>
-          <div className="font-medium text-[#666]">Bypass</div>
-
-          <div className="text-left flex items-center gap-1">
-            <Radio className="w-3 h-3 text-blue-600" /> Grok
-          </div>
-          <div className="font-semibold">{analysis.grokAnalysis.curiosityGap.score}</div>
-          <div className="font-semibold">{analysis.grokAnalysis.predictionViolation.score}</div>
-          <div className="font-semibold">{analysis.grokAnalysis.habituationBypass.score}</div>
-
-          <div className="text-left flex items-center gap-1">
-            <Sparkles className="w-3 h-3 text-[#C41E3A]" /> Claude
-          </div>
-          <div className="font-semibold">{analysis.claudeAnalysis.curiosityGap.score}</div>
-          <div className="font-semibold">{analysis.claudeAnalysis.predictionViolation.score}</div>
-          <div className="font-semibold">{analysis.claudeAnalysis.habituationBypass.score}</div>
+      {/* Missed Opportunity Alert */}
+      {Object.values(pillarScores).some(s => s < 5) && (
+        <div className="bg-amber-50 border-l-4 border-amber-400 rounded-r-xl p-4">
+          <h4 className="flex items-center gap-2 text-sm font-semibold text-amber-700 mb-2">
+            <AlertCircle className="w-4 h-4" /> Missed Opportunity
+          </h4>
+          <p className="text-sm text-amber-700">
+            This content could be stronger on{' '}
+            {ABH_PILLARS.filter(p => pillarScores[p.key as keyof typeof pillarScores] < 5)
+              .map(p => p.label.toLowerCase())
+              .join(', ')}.
+            Consider adding that angle in your QT or reply!
+          </p>
         </div>
-      </div>
+      )}
     </div>
   );
 }
 
-// Use This Slide - Simplified Pulse Style
+// Use This Slide - With QT Suggestion & Community Growth
 function UseSlide({ analysis }: { analysis: TweetAnalysis }) {
+  // Generate a QT suggestion based on ABH voice
+  const generateQTSuggestion = () => {
+    const hooks = [
+      `This is what more people need to hear →`,
+      `This hit different because`,
+      `The part everyone's missing:`,
+      `Real talk on this →`,
+      `Adding to this because it's SO important:`,
+    ];
+    const randomHook = hooks[Math.floor(Math.random() * hooks.length)];
+    const insight = analysis.claudeAnalysis.keyInsight || analysis.takeaways[0]?.description || '';
+    return `${randomHook}\n\n${insight.slice(0, 200)}${insight.length > 200 ? '...' : ''}`;
+  };
+
+  const qtSuggestion = generateQTSuggestion();
+
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -405,26 +499,66 @@ function UseSlide({ analysis }: { analysis: TweetAnalysis }) {
         </div>
       </div>
 
+      {/* QT Suggestion - Reply Girl Style */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
+        <h4 className="flex items-center gap-2 text-sm font-semibold text-blue-700 mb-3">
+          <MessageSquareQuote className="w-4 h-4" /> Quote Tweet This
+        </h4>
+        <p className="text-sm text-[#1A1A1A] whitespace-pre-wrap mb-3">{qtSuggestion}</p>
+        <button
+          onClick={() => {
+            navigator.clipboard.writeText(qtSuggestion);
+          }}
+          className="text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors"
+        >
+          Copy to clipboard →
+        </button>
+      </div>
+
       {/* Takeaways - Numbered List */}
-      <div className="space-y-4">
-        {analysis.takeaways.map((takeaway, i) => (
-          <div key={i} className="flex items-start gap-3">
-            <span className="flex-shrink-0 w-7 h-7 bg-[#C41E3A] text-white rounded-full flex items-center justify-center text-sm font-bold">
-              {i + 1}
-            </span>
-            <div className="flex-1 pt-0.5">
-              <h4 className="font-semibold text-[#1A1A1A] text-sm">{takeaway.title}</h4>
-              <p className="text-sm text-[#666] mt-1">{takeaway.description}</p>
+      <div>
+        <h4 className="text-sm font-semibold text-[#1A1A1A] mb-3">Key Takeaways</h4>
+        <div className="space-y-3">
+          {analysis.takeaways.map((takeaway, i) => (
+            <div key={i} className="flex items-start gap-3">
+              <span className="flex-shrink-0 w-6 h-6 bg-[#C41E3A] text-white rounded-full flex items-center justify-center text-xs font-bold">
+                {i + 1}
+              </span>
+              <div className="flex-1">
+                <h4 className="font-medium text-[#1A1A1A] text-sm">{takeaway.title}</h4>
+                <p className="text-sm text-[#666] mt-0.5">{takeaway.description}</p>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
+      </div>
+
+      {/* Community Growth Opportunity */}
+      <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4">
+        <h4 className="flex items-center gap-2 text-sm font-semibold text-green-700 mb-2">
+          <Users className="w-4 h-4" /> Community Growth Play
+        </h4>
+        <ul className="space-y-2 text-sm text-green-800">
+          <li className="flex items-start gap-2">
+            <span className="text-green-600">→</span>
+            <span>Reply with your own vulnerable take (70% human, 30% strategic)</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-green-600">→</span>
+            <span>QT with an ABH angle to join the conversation</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-green-600">→</span>
+            <span>Save to diary for thread inspiration later</span>
+          </li>
+        </ul>
       </div>
 
       {/* Pro Tip Box */}
-      {analysis.takeaways[0] && (
+      {analysis.takeaways[0]?.example && (
         <div className="bg-gradient-to-r from-[#FFF0F3] to-[#FFF5F7] border-l-4 border-[#C41E3A] rounded-r-xl p-4">
           <h4 className="flex items-center gap-2 text-sm font-semibold text-[#C41E3A] mb-2">
-            💡 Try This
+            💡 Try This Format
           </h4>
           <p className="text-sm text-[#666] italic">&quot;{analysis.takeaways[0].example}&quot;</p>
         </div>
