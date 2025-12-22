@@ -25,30 +25,44 @@ const CLAUDE_OUTPUT_COST = 0.015 / 1000; // $15 per 1M output tokens
 const GROK_INPUT_COST = 0.005 / 1000;    // $5 per 1M input tokens (estimated)
 const GROK_OUTPUT_COST = 0.015 / 1000;   // $15 per 1M output tokens (estimated)
 
+interface FeatureUsage {
+  feature: string;
+  calls: number;
+  cost: number;
+}
+
+interface MonthlyUsage {
+  month: string;
+  claude: { calls: number; cost: number; tokens: number };
+  grok: { calls: number; cost: number; tokens: number };
+  features: FeatureUsage[];
+}
+
 function updateApiUsage(claudeUsage: { inputTokens: number; outputTokens: number }, grokUsage: { inputTokens: number; outputTokens: number }) {
   const now = new Date();
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const storageKey = `abh_api_usage_${currentMonth}`;
 
   // Calculate costs
+  const claudeTokens = claudeUsage.inputTokens + claudeUsage.outputTokens;
+  const grokTokens = grokUsage.inputTokens + grokUsage.outputTokens;
   const claudeCost = (claudeUsage.inputTokens * CLAUDE_INPUT_COST) + (claudeUsage.outputTokens * CLAUDE_OUTPUT_COST);
   const grokCost = (grokUsage.inputTokens * GROK_INPUT_COST) + (grokUsage.outputTokens * GROK_OUTPUT_COST);
 
-  // Get existing or create new
-  let usage = {
-    claude: { calls: 0, inputTokens: 0, outputTokens: 0, cost: 0, byFeature: { roundtable: { calls: 0, cost: 0 } } },
-    grok: { calls: 0, inputTokens: 0, outputTokens: 0, cost: 0, byFeature: { roundtable: { calls: 0, cost: 0 } } },
+  // Get existing or create new - matches ApiUsageModal expected format
+  let usage: MonthlyUsage = {
+    month: currentMonth,
+    claude: { calls: 0, cost: 0, tokens: 0 },
+    grok: { calls: 0, cost: 0, tokens: 0 },
+    features: [],
   };
 
   try {
     const stored = localStorage.getItem(storageKey);
     if (stored) {
       usage = JSON.parse(stored);
-      // Ensure byFeature exists
-      if (!usage.claude.byFeature) usage.claude.byFeature = { roundtable: { calls: 0, cost: 0 } };
-      if (!usage.grok.byFeature) usage.grok.byFeature = { roundtable: { calls: 0, cost: 0 } };
-      if (!usage.claude.byFeature.roundtable) usage.claude.byFeature.roundtable = { calls: 0, cost: 0 };
-      if (!usage.grok.byFeature.roundtable) usage.grok.byFeature.roundtable = { calls: 0, cost: 0 };
+      // Ensure features array exists
+      if (!usage.features) usage.features = [];
     }
   } catch {
     // Use default
@@ -57,21 +71,25 @@ function updateApiUsage(claudeUsage: { inputTokens: number; outputTokens: number
   // Update Claude
   if (claudeUsage.inputTokens > 0) {
     usage.claude.calls += 1;
-    usage.claude.inputTokens += claudeUsage.inputTokens;
-    usage.claude.outputTokens += claudeUsage.outputTokens;
+    usage.claude.tokens += claudeTokens;
     usage.claude.cost += claudeCost;
-    usage.claude.byFeature.roundtable.calls += 1;
-    usage.claude.byFeature.roundtable.cost += claudeCost;
   }
 
   // Update Grok
   if (grokUsage.inputTokens > 0) {
     usage.grok.calls += 1;
-    usage.grok.inputTokens += grokUsage.inputTokens;
-    usage.grok.outputTokens += grokUsage.outputTokens;
+    usage.grok.tokens += grokTokens;
     usage.grok.cost += grokCost;
-    usage.grok.byFeature.roundtable.calls += 1;
-    usage.grok.byFeature.roundtable.cost += grokCost;
+  }
+
+  // Update features breakdown
+  const totalCost = claudeCost + grokCost;
+  const roundtableFeature = usage.features.find(f => f.feature === 'Roundtable');
+  if (roundtableFeature) {
+    roundtableFeature.calls += 1;
+    roundtableFeature.cost += totalCost;
+  } else {
+    usage.features.push({ feature: 'Roundtable', calls: 1, cost: totalCost });
   }
 
   localStorage.setItem(storageKey, JSON.stringify(usage));
