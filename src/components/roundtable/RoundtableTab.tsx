@@ -6,7 +6,6 @@ import {
   Link2,
   Sparkles,
   Radio,
-  Target,
   Lightbulb,
   CheckCircle2,
   ArrowRight,
@@ -294,7 +293,7 @@ function AddTweetModal({
               </>
             ) : (
               <>
-                <Target className="w-4 h-4" />
+                <Sparkles className="w-4 h-4" />
                 Run Roundtable
               </>
             )}
@@ -514,10 +513,7 @@ export default function RoundtableTab() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-[#1A1A1A]">Roundtable</h1>
-          <p className="text-[#666] mt-1">Tweets dissected by Grok & Claude</p>
-        </div>
+        <h1 className="text-2xl font-semibold text-[#1A1A1A]">Roundtable</h1>
         <button
           onClick={() => setShowAddModal(true)}
           className="flex items-center gap-2 px-4 py-2.5 bg-[#C41E3A] text-white rounded-xl font-medium hover:bg-[#A31830] transition-colors"
@@ -531,24 +527,6 @@ export default function RoundtableTab() {
       {error && (
         <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
           {error}
-        </div>
-      )}
-
-      {/* Empty State */}
-      {analyses.length === 0 && (
-        <div className="text-center py-16">
-          <div className="w-16 h-16 bg-[#FAFAFA] rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Target className="w-8 h-8 text-[#999]" />
-          </div>
-          <h3 className="text-lg font-medium text-[#1A1A1A] mb-2">No tweets analyzed yet</h3>
-          <p className="text-[#666] mb-6">Add your first tweet to see Grok & Claude break down what makes it work</p>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-[#C41E3A] text-white rounded-xl font-medium hover:bg-[#A31830] transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Add Your First Tweet
-          </button>
         </div>
       )}
 
