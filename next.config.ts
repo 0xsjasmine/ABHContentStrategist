@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Disable the error overlay in development
+  devIndicators: false,
+  reactStrictMode: false,
 };
 
 export default nextConfig;
