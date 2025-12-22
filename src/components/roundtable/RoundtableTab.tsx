@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   Plus,
-  Link2,
   Sparkles,
   Radio,
   Lightbulb,
@@ -12,12 +11,9 @@ import {
   ArrowLeft,
   Loader2,
   X,
-  ChevronDown,
-  ChevronUp,
   Wand2,
   Scale,
   Trash2,
-  ExternalLink,
   MessageSquareQuote,
   Users,
   TrendingUp,
@@ -803,146 +799,180 @@ function TweetCard({
   );
 }
 
-// Add Tweet Modal
-function AddTweetModal({
-  isOpen,
-  onClose,
-  onAnalyze,
-  isAnalyzing
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  onAnalyze: (url: string, text?: string, author?: string) => void;
-  isAnalyzing: boolean;
-}) {
-  const [tweetUrl, setTweetUrl] = useState('');
-  const [showManual, setShowManual] = useState(false);
-  const [tweetText, setTweetText] = useState('');
-  const [author, setAuthor] = useState('');
-  const [error, setError] = useState('');
+// URL Queue Item for tracking analysis progress
+interface UrlQueueItem {
+  url: string;
+  status: 'pending' | 'analyzing' | 'done' | 'error';
+  error?: string;
+}
 
-  const handleSubmit = () => {
-    setError('');
-    if (tweetUrl) {
-      onAnalyze(tweetUrl);
-    } else if (tweetText && author) {
-      onAnalyze('', tweetText, author);
-    } else {
-      setError('Please enter a tweet URL or fill in the manual fields');
-    }
+// Right Side Panel for adding multiple tweets
+function AddTweetsPanel({
+  onAnalyzeComplete,
+  analysisQueue,
+  setAnalysisQueue,
+}: {
+  onAnalyzeComplete: (result: TweetAnalysis) => void;
+  analysisQueue: UrlQueueItem[];
+  setAnalysisQueue: React.Dispatch<React.SetStateAction<UrlQueueItem[]>>;
+}) {
+  const [urlInput, setUrlInput] = useState('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  // Parse URLs from input (one per line)
+  const parseUrls = (input: string): string[] => {
+    return input
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0 && (line.includes('twitter.com') || line.includes('x.com')));
   };
 
-  if (!isOpen) return null;
+  const handleAnalyzeAll = async () => {
+    const urls = parseUrls(urlInput);
+    if (urls.length === 0) return;
+
+    // Initialize queue
+    const queue: UrlQueueItem[] = urls.map(url => ({ url, status: 'pending' }));
+    setAnalysisQueue(queue);
+    setIsAnalyzing(true);
+
+    // Process each URL
+    for (let i = 0; i < queue.length; i++) {
+      // Update status to analyzing
+      setAnalysisQueue(prev => prev.map((item, idx) =>
+        idx === i ? { ...item, status: 'analyzing' } : item
+      ));
+
+      try {
+        const response = await fetch('/api/roundtable/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: queue[i].url }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Analysis failed');
+        }
+
+        // Track API usage
+        if (result.usage) {
+          updateApiUsage(result.usage.claude, result.usage.grok, result.usage.openai);
+        }
+
+        // Add to analyses
+        onAnalyzeComplete(result);
+
+        // Update status to done
+        setAnalysisQueue(prev => prev.map((item, idx) =>
+          idx === i ? { ...item, status: 'done' } : item
+        ));
+      } catch (err) {
+        // Update status to error
+        setAnalysisQueue(prev => prev.map((item, idx) =>
+          idx === i ? { ...item, status: 'error', error: err instanceof Error ? err.message : 'Failed' } : item
+        ));
+      }
+    }
+
+    setIsAnalyzing(false);
+    setUrlInput('');
+  };
+
+  const urlCount = parseUrls(urlInput).length;
+  const completedCount = analysisQueue.filter(q => q.status === 'done').length;
+  const errorCount = analysisQueue.filter(q => q.status === 'error').length;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
+    <div className="bg-white border border-[#EEE] rounded-2xl p-5 h-fit sticky top-6">
+      <h3 className="text-lg font-semibold text-[#1A1A1A] mb-4 flex items-center gap-2">
+        <Plus className="w-5 h-5 text-[#C41E3A]" />
+        Add Tweets
+      </h3>
 
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#EEE]">
-          <h2 className="text-lg font-semibold text-[#1A1A1A]">Add Tweet to Roundtable</h2>
-          <button onClick={onClose} className="p-2 hover:bg-[#F5F5F5] rounded-lg transition-colors">
-            <X className="w-5 h-5 text-[#999]" />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className="p-6 space-y-4">
-          {/* URL Input */}
-          <div>
-            <label className="block text-sm font-medium text-[#1A1A1A] mb-2">Tweet URL</label>
-            <div className="relative">
-              <Link2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#999]" />
-              <input
-                type="url"
-                value={tweetUrl}
-                onChange={(e) => setTweetUrl(e.target.value)}
-                placeholder="https://twitter.com/username/status/..."
-                className="w-full pl-11 pr-4 py-3 border border-[#DDD] rounded-xl text-sm focus:outline-none focus:border-[#C41E3A]"
-              />
-            </div>
-            <p className="text-xs text-[#999] mt-1.5">Supports twitter.com and x.com links</p>
-          </div>
-
-          {/* Manual Toggle */}
-          <button
-            onClick={() => setShowManual(!showManual)}
-            className="flex items-center gap-2 text-sm text-[#666] hover:text-[#1A1A1A]"
-          >
-            {showManual ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            Or paste manually
-          </button>
-
-          {/* Manual Fields */}
-          {showManual && (
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-[#1A1A1A] mb-1.5">Tweet Text</label>
-                <textarea
-                  value={tweetText}
-                  onChange={(e) => setTweetText(e.target.value)}
-                  placeholder="Paste the tweet text..."
-                  rows={3}
-                  className="w-full px-4 py-3 border border-[#DDD] rounded-xl text-sm focus:outline-none focus:border-[#C41E3A] resize-none"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-[#1A1A1A] mb-1.5">Author</label>
-                <input
-                  type="text"
-                  value={author}
-                  onChange={(e) => setAuthor(e.target.value)}
-                  placeholder="@username or name"
-                  className="w-full px-4 py-3 border border-[#DDD] rounded-xl text-sm focus:outline-none focus:border-[#C41E3A]"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Error */}
-          {error && (
-            <p className="text-sm text-red-600 bg-red-50 px-4 py-2 rounded-lg">{error}</p>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="px-6 py-4 bg-[#FAFAFA] border-t border-[#EEE] flex gap-3">
-          <button
-            onClick={onClose}
-            className="flex-1 py-3 border border-[#DDD] text-[#666] rounded-xl font-medium hover:bg-white transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={isAnalyzing || (!tweetUrl && (!tweetText || !author))}
-            className="flex-1 py-3 bg-[#C41E3A] text-white rounded-xl font-medium hover:bg-[#A31830] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {isAnalyzing ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Analyzing...
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4" />
-                Run Roundtable
-              </>
-            )}
-          </button>
-        </div>
+      {/* URL Input */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-[#666] mb-2">
+          Paste tweet URLs (one per line)
+        </label>
+        <textarea
+          value={urlInput}
+          onChange={(e) => setUrlInput(e.target.value)}
+          placeholder="https://x.com/username/status/123...
+https://twitter.com/username/status/456...
+https://x.com/another/status/789..."
+          rows={6}
+          disabled={isAnalyzing}
+          className="w-full px-4 py-3 border border-[#DDD] rounded-xl text-sm focus:outline-none focus:border-[#C41E3A] resize-none font-mono disabled:bg-[#F5F5F5] disabled:cursor-not-allowed"
+        />
+        <p className="text-xs text-[#999] mt-1.5">
+          {urlCount > 0 ? `${urlCount} tweet${urlCount > 1 ? 's' : ''} ready` : 'Supports twitter.com and x.com'}
+        </p>
       </div>
+
+      {/* Analyze Button */}
+      <button
+        onClick={handleAnalyzeAll}
+        disabled={isAnalyzing || urlCount === 0}
+        className="w-full py-3 bg-[#C41E3A] text-white rounded-xl font-medium hover:bg-[#A31830] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+      >
+        {isAnalyzing ? (
+          <>
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Analyzing {completedCount + errorCount + 1}/{analysisQueue.length}...
+          </>
+        ) : (
+          <>
+            <Sparkles className="w-4 h-4" />
+            {urlCount > 1 ? `Analyze ${urlCount} Tweets` : 'Analyze Tweet'}
+          </>
+        )}
+      </button>
+
+      {/* Progress Queue */}
+      {analysisQueue.length > 0 && (
+        <div className="mt-4 space-y-2">
+          <p className="text-xs font-medium text-[#666]">Progress</p>
+          <div className="max-h-48 overflow-y-auto space-y-1.5">
+            {analysisQueue.map((item, idx) => (
+              <div
+                key={idx}
+                className={`flex items-center gap-2 text-xs px-3 py-2 rounded-lg ${
+                  item.status === 'done' ? 'bg-green-50 text-green-700' :
+                  item.status === 'error' ? 'bg-red-50 text-red-700' :
+                  item.status === 'analyzing' ? 'bg-blue-50 text-blue-700' :
+                  'bg-[#F5F5F5] text-[#666]'
+                }`}
+              >
+                {item.status === 'analyzing' && <Loader2 className="w-3 h-3 animate-spin" />}
+                {item.status === 'done' && <CheckCircle2 className="w-3 h-3" />}
+                {item.status === 'error' && <AlertCircle className="w-3 h-3" />}
+                {item.status === 'pending' && <div className="w-3 h-3 rounded-full border border-current" />}
+                <span className="truncate flex-1 font-mono">
+                  {item.url.replace(/https?:\/\/(twitter|x)\.com\//, '@').split('/status')[0]}
+                </span>
+              </div>
+            ))}
+          </div>
+          {!isAnalyzing && (completedCount > 0 || errorCount > 0) && (
+            <button
+              onClick={() => setAnalysisQueue([])}
+              className="text-xs text-[#999] hover:text-[#666]"
+            >
+              Clear queue
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
 export default function RoundtableTab() {
   const [analyses, setAnalyses] = useState<TweetAnalysis[]>([]);
-  const [showAddModal, setShowAddModal] = useState(false);
   const [selectedAnalysis, setSelectedAnalysis] = useState<TweetAnalysis | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [error, setError] = useState('');
+  const [analysisQueue, setAnalysisQueue] = useState<UrlQueueItem[]>([]);
 
   // Load saved analyses from localStorage
   useEffect(() => {
@@ -969,87 +999,55 @@ export default function RoundtableTab() {
     setAnalyses(prev => prev.filter(a => a.id !== id));
   };
 
-  const handleAnalyze = async (url: string, text?: string, author?: string) => {
-    setIsAnalyzing(true);
-    setError('');
-
-    try {
-      const payload: Record<string, unknown> = {};
-      if (url) {
-        payload.url = url;
-      } else if (text && author) {
-        payload.tweet = text;
-        payload.author = author;
-      }
-
-      const response = await fetch('/api/roundtable/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Analysis failed');
-      }
-
-      // Track API usage
-      if (result.usage) {
-        updateApiUsage(result.usage.claude, result.usage.grok, result.usage.openai);
-      }
-
-      setAnalyses(prev => [result, ...prev]);
-      setShowAddModal(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Analysis failed');
-    } finally {
-      setIsAnalyzing(false);
-    }
+  const handleAnalyzeComplete = (result: TweetAnalysis) => {
+    setAnalyses(prev => [result, ...prev]);
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-[#1A1A1A]">Roundtable</h1>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#C41E3A] text-white rounded-xl font-medium hover:bg-[#A31830] transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Add Tweet
-        </button>
+    <div className="flex gap-6">
+      {/* Main Content - Left Side */}
+      <div className="flex-1 min-w-0">
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-2xl font-semibold text-[#1A1A1A]">Roundtable</h1>
+          <p className="text-sm text-[#666] mt-1">
+            Analyze tweets with Grok, Claude & GPT to learn what makes them work
+          </p>
+        </div>
+
+        {/* Card Grid */}
+        {analyses.length > 0 ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {analyses.map((analysis) => (
+              <TweetCard
+                key={analysis.id}
+                analysis={analysis}
+                onClick={() => setSelectedAnalysis(analysis)}
+                onDelete={() => handleDelete(analysis.id)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="bg-[#FAFAFA] border border-dashed border-[#DDD] rounded-2xl p-12 text-center">
+            <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Sparkles className="w-8 h-8 text-[#C41E3A]" />
+            </div>
+            <h3 className="text-lg font-semibold text-[#1A1A1A] mb-2">No tweets analyzed yet</h3>
+            <p className="text-sm text-[#666] max-w-sm mx-auto">
+              Paste tweet URLs in the panel on the right to analyze them with three AI perspectives
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* Error */}
-      {error && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
-          {error}
-        </div>
-      )}
-
-      {/* Card Grid */}
-      {analyses.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {analyses.map((analysis) => (
-            <TweetCard
-              key={analysis.id}
-              analysis={analysis}
-              onClick={() => setSelectedAnalysis(analysis)}
-              onDelete={() => handleDelete(analysis.id)}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Add Tweet Modal */}
-      <AddTweetModal
-        isOpen={showAddModal}
-        onClose={() => setShowAddModal(false)}
-        onAnalyze={handleAnalyze}
-        isAnalyzing={isAnalyzing}
-      />
+      {/* Right Side Panel */}
+      <div className="w-80 flex-shrink-0">
+        <AddTweetsPanel
+          onAnalyzeComplete={handleAnalyzeComplete}
+          analysisQueue={analysisQueue}
+          setAnalysisQueue={setAnalysisQueue}
+        />
+      </div>
 
       {/* Swipe Analysis Modal */}
       {selectedAnalysis && (
