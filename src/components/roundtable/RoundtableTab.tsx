@@ -631,26 +631,44 @@ function TweetCard({
     }
   };
 
-  // Load Twitter widget for embed
+  // Load Twitter widget for embed - use key to force reload on re-render
+  const [embedKey, setEmbedKey] = useState(0);
+
   useEffect(() => {
     if (analysis.tweet.embedHtml && embedRef.current) {
+      // Small delay to ensure DOM is ready
+      const loadWidget = () => {
+        const twttr = (window as unknown as { twttr?: { widgets?: { load?: (el: HTMLElement) => void } } }).twttr;
+        if (twttr?.widgets?.load && embedRef.current) {
+          twttr.widgets.load(embedRef.current);
+        }
+      };
+
       const twttr = (window as unknown as { twttr?: { widgets?: { load?: (el: HTMLElement) => void } } }).twttr;
       if (twttr?.widgets?.load) {
-        twttr.widgets.load(embedRef.current);
+        // Widget already loaded, just call it
+        setTimeout(loadWidget, 50);
       } else {
-        const script = document.createElement('script');
-        script.src = 'https://platform.twitter.com/widgets.js';
-        script.async = true;
-        script.onload = () => {
-          const newTwttr = (window as unknown as { twttr?: { widgets?: { load?: (el: HTMLElement) => void } } }).twttr;
-          if (newTwttr?.widgets?.load && embedRef.current) {
-            newTwttr.widgets.load(embedRef.current);
-          }
-        };
-        document.body.appendChild(script);
+        // Load the script
+        const existingScript = document.querySelector('script[src="https://platform.twitter.com/widgets.js"]');
+        if (!existingScript) {
+          const script = document.createElement('script');
+          script.src = 'https://platform.twitter.com/widgets.js';
+          script.async = true;
+          script.onload = () => setTimeout(loadWidget, 50);
+          document.body.appendChild(script);
+        } else {
+          // Script exists but twttr not ready, wait for it
+          setTimeout(loadWidget, 100);
+        }
       }
     }
-  }, [analysis.tweet.embedHtml]);
+  }, [analysis.tweet.embedHtml, analysis.id, embedKey]);
+
+  // Force reload widget when component becomes visible again
+  useEffect(() => {
+    setEmbedKey(k => k + 1);
+  }, []);
 
   return (
     <div
@@ -685,6 +703,7 @@ function TweetCard({
       {/* Twitter Embed */}
       {analysis.tweet.embedHtml ? (
         <div
+          key={`embed-${analysis.id}-${embedKey}`}
           ref={embedRef}
           className="px-2 pb-2 [&_blockquote]:!m-0 [&_blockquote]:!border-0 [&_.twitter-tweet]:!m-0 [&_iframe]:!max-w-full"
           dangerouslySetInnerHTML={{ __html: analysis.tweet.embedHtml }}
