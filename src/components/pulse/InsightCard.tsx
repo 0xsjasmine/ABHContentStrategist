@@ -12,8 +12,8 @@ const PILLAR_CONFIG = {
 };
 
 // Icons
-const CrownIcon = () => (
-  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+const CrownIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} fill="currentColor" viewBox="0 0 24 24">
     <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/>
   </svg>
 );
@@ -58,6 +58,12 @@ const HashtagIcon = () => (
 const ChatIcon = () => (
   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+  </svg>
+);
+
+const XIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
   </svg>
 );
 
@@ -153,13 +159,7 @@ function TweetEmbed({ url }: { url: string }) {
   );
 }
 
-const XIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-  </svg>
-);
-
-interface InsightCardProps {
+export interface InsightCardProps {
   id: string;
   headline: string;
   subtitle?: string;
@@ -179,19 +179,6 @@ interface InsightCardProps {
   onEngage?: (id: string, type: string) => void;
 }
 
-const categoryLabels: Record<ABHCategory, string> = {
-  friendships: 'Friendships',
-  ai: 'AI',
-  ambition: 'Ambition',
-  twenties: 'Twenties',
-};
-
-const urgencyColors = {
-  high: 'pill-high',
-  medium: 'pill-medium',
-  low: 'pill-low',
-};
-
 function getTimeAgo(dateString?: string): string {
   if (!dateString) return 'Recently';
   const date = new Date(dateString);
@@ -205,12 +192,137 @@ function getTimeAgo(dateString?: string): string {
   return 'Just now';
 }
 
-export default function InsightCard({
+// ==========================================
+// COMPACT CARD - Shows minimal info, clickable
+// ==========================================
+interface InsightCardCompactProps extends InsightCardProps {
+  onClick: () => void;
+  isSaved?: boolean;
+  onToggleSave?: () => void;
+}
+
+export function InsightCardCompact({
+  headline,
+  subtitle,
+  abhScore,
+  scannedAt,
+  onClick,
+  isSaved,
+  onToggleSave,
+  onDismiss,
+  id,
+}: InsightCardCompactProps) {
+  return (
+    <div
+      onClick={onClick}
+      className="bg-white rounded-xl border border-gray-200 p-4 cursor-pointer hover:shadow-md hover:border-gray-300 transition-all group"
+    >
+      <div className="flex items-start gap-3">
+        {/* Time badge */}
+        <span className="text-xs font-medium px-2 py-1 rounded-full bg-green-100 text-green-700 whitespace-nowrap">
+          {getTimeAgo(scannedAt)}
+        </span>
+        <span className="p-1 text-gray-400">
+          <UserIcon />
+        </span>
+
+        {/* Actions - Save & Dismiss */}
+        <div className="ml-auto flex items-center gap-1">
+          {onToggleSave && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleSave();
+              }}
+              className={`p-1.5 rounded-lg transition-colors ${
+                isSaved
+                  ? 'bg-amber-100 text-amber-600'
+                  : 'text-gray-400 hover:bg-gray-100'
+              }`}
+              title={isSaved ? 'Remove from saved' : 'Save for later'}
+            >
+              <svg className="w-4 h-4" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+              </svg>
+            </button>
+          )}
+          {onDismiss && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDismiss(id);
+              }}
+              className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <XIcon />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="flex items-start gap-3 mt-3">
+        <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center text-red-600 flex-shrink-0">
+          <CrownIcon className="w-5 h-5" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-gray-900 leading-tight group-hover:text-red-700 transition-colors">
+            {headline}
+          </h3>
+          {subtitle && (
+            <p className="text-sm text-red-600 mt-0.5 line-clamp-1">
+              {subtitle}
+            </p>
+          )}
+          {/* Pillar Badges */}
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            {abhScore.friendships > 5 && (
+              <span className={`text-xs px-2 py-0.5 rounded-full ${PILLAR_CONFIG.friendships.color}`}>
+                Friendships {abhScore.friendships}
+              </span>
+            )}
+            {abhScore.ai > 5 && (
+              <span className={`text-xs px-2 py-0.5 rounded-full ${PILLAR_CONFIG.ai.color}`}>
+                AI {abhScore.ai}
+              </span>
+            )}
+            {abhScore.ambition > 5 && (
+              <span className={`text-xs px-2 py-0.5 rounded-full ${PILLAR_CONFIG.ambition.color}`}>
+                Ambition {abhScore.ambition}
+              </span>
+            )}
+            {abhScore.twenties > 5 && (
+              <span className={`text-xs px-2 py-0.5 rounded-full ${PILLAR_CONFIG.twenties.color}`}>
+                Twenties {abhScore.twenties}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* ABH Score */}
+        <div className="flex-shrink-0 w-16 h-16 rounded-xl bg-red-700 text-white flex flex-col items-center justify-center">
+          <span className="text-xl font-bold">{abhScore.composite}/10</span>
+          <span className="text-[10px] uppercase tracking-wide opacity-80">ABH Score</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ==========================================
+// INSIGHT MODAL - Full analysis in overlay
+// ==========================================
+interface InsightModalProps extends InsightCardProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export function InsightModal({
+  isOpen,
+  onClose,
   id,
   headline,
   subtitle,
-  category,
-  urgency,
   summary,
   whyThisMatters,
   keyInsight,
@@ -223,250 +335,264 @@ export default function InsightCard({
   scannedAt,
   onDismiss,
   onEngage,
-}: InsightCardProps) {
+}: InsightModalProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
+  // Close on escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'hidden';
+    }
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  const urgencyColors = {
+    high: 'bg-red-100 text-red-700',
+    medium: 'bg-amber-100 text-amber-700',
+    low: 'bg-green-100 text-green-700',
+  };
+
   return (
-    <div className="insight-card animate-slide-up">
-      {/* Header */}
-      <div className="insight-card-header">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <span className="time-badge">{getTimeAgo(scannedAt)}</span>
-            <span className="category-badge">
-              <UserIcon />
-              {categoryLabels[category]}
-            </span>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* Modal */}
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden animate-slide-up">
+        {/* Header */}
+        <div className="sticky top-0 bg-white border-b border-gray-100 p-4 flex items-start justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center text-red-600">
+              <CrownIcon className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">{headline}</h2>
+              {subtitle && (
+                <p className="text-sm text-red-600">{subtitle}</p>
+              )}
+            </div>
           </div>
-          {onDismiss && (
+          <div className="flex items-center gap-2">
+            <div className="w-14 h-14 rounded-xl bg-red-700 text-white flex flex-col items-center justify-center">
+              <span className="text-lg font-bold">{abhScore.composite}/10</span>
+              <span className="text-[8px] uppercase tracking-wide opacity-80">ABH</span>
+            </div>
             <button
-              onClick={() => onDismiss(id)}
-              className="text-gray-400 hover:text-gray-600 p-1"
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <XIcon />
             </button>
-          )}
-        </div>
-
-        <div className="flex items-start gap-4 mt-4">
-          <div className="icon-box">
-            <CrownIcon />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-semibold text-gray-900 leading-tight">
-              {headline}
-            </h3>
-            {subtitle && (
-              <p className="text-sm mt-1" style={{ color: 'var(--red)' }}>
-                {subtitle}
-              </p>
-            )}
-            {/* Pillar Badges */}
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              {abhScore.friendships > 5 && (
-                <span className={`text-xs px-2 py-0.5 rounded-full ${PILLAR_CONFIG.friendships.color}`}>
-                  Friendships {abhScore.friendships}
-                </span>
-              )}
-              {abhScore.ai > 5 && (
-                <span className={`text-xs px-2 py-0.5 rounded-full ${PILLAR_CONFIG.ai.color}`}>
-                  AI {abhScore.ai}
-                </span>
-              )}
-              {abhScore.ambition > 5 && (
-                <span className={`text-xs px-2 py-0.5 rounded-full ${PILLAR_CONFIG.ambition.color}`}>
-                  Ambition {abhScore.ambition}
-                </span>
-              )}
-              {abhScore.twenties > 5 && (
-                <span className={`text-xs px-2 py-0.5 rounded-full ${PILLAR_CONFIG.twenties.color}`}>
-                  Twenties {abhScore.twenties}
-                </span>
-              )}
-            </div>
-          </div>
-          <div className="abh-score">
-            <span>{abhScore.composite}/10</span>
-            <span className="abh-score-label">ABH Score</span>
           </div>
         </div>
-      </div>
 
-      {/* Body */}
-      <div className="insight-card-body">
-        {/* Summary */}
-        <p className="text-gray-700 leading-relaxed">{summary}</p>
-
-        {/* Why This Matters */}
-        {whyThisMatters && (
-          <div className="insight-card-section">
-            <div className="insight-card-section-title">
-              <LightbulbIcon />
-              Why This Is Worth Noting
-            </div>
-            <p className="text-gray-700 text-sm">{whyThisMatters}</p>
-          </div>
-        )}
-
-        {/* Key Takeaways - Show score breakdown */}
-        <div className="mt-4">
-          <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 mb-3">
-            <BoltIcon />
-            Key Takeaways
-          </div>
-          <div className="space-y-2">
+        {/* Content */}
+        <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+          {/* Pillar Badges */}
+          <div className="flex flex-wrap gap-2 mb-4">
             {abhScore.friendships > 5 && (
-              <div className="flex items-start gap-3">
-                <span className="takeaway-number">1</span>
-                <span className="text-sm text-gray-700">
-                  Strong friendships angle ({abhScore.friendships}/10) - touches on connection and support
-                </span>
-              </div>
+              <span className={`text-sm px-3 py-1 rounded-full ${PILLAR_CONFIG.friendships.color}`}>
+                Friendships {abhScore.friendships}
+              </span>
             )}
             {abhScore.ai > 5 && (
-              <div className="flex items-start gap-3">
-                <span className="takeaway-number">2</span>
-                <span className="text-sm text-gray-700">
-                  High AI relevance ({abhScore.ai}/10) - relates to AI, tech, and staying human in the AI era
-                </span>
-              </div>
+              <span className={`text-sm px-3 py-1 rounded-full ${PILLAR_CONFIG.ai.color}`}>
+                AI {abhScore.ai}
+              </span>
             )}
             {abhScore.ambition > 5 && (
-              <div className="flex items-start gap-3">
-                <span className="takeaway-number">3</span>
-                <span className="text-sm text-gray-700">
-                  High ambition factor ({abhScore.ambition}/10) - relates to career, building, or goals
-                </span>
-              </div>
+              <span className={`text-sm px-3 py-1 rounded-full ${PILLAR_CONFIG.ambition.color}`}>
+                Ambition {abhScore.ambition}
+              </span>
+            )}
+            {abhScore.twenties > 5 && (
+              <span className={`text-sm px-3 py-1 rounded-full ${PILLAR_CONFIG.twenties.color}`}>
+                Twenties {abhScore.twenties}
+              </span>
             )}
           </div>
-        </div>
 
-        {/* Key Insight */}
-        {keyInsight && (
-          <div className="mt-4">
-            <div className="flex items-center gap-2 text-sm font-semibold mb-2" style={{ color: 'var(--red)' }}>
-              <SparklesIcon />
-              The Key Insight
-            </div>
-            <div className="key-insight">
-              "{keyInsight}"
-            </div>
-          </div>
-        )}
+          {/* Summary */}
+          <p className="text-gray-700 leading-relaxed">{summary}</p>
 
-        {/* What to Watch For */}
-        {whatToWatchFor && (
-          <div className="mt-4">
-            <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 mb-2">
-              <EyeIcon />
-              What to Watch For
+          {/* Why This Matters */}
+          {whyThisMatters && (
+            <div className="mt-6 p-4 bg-amber-50 rounded-xl border border-amber-100">
+              <div className="flex items-center gap-2 text-sm font-semibold text-amber-800 mb-2">
+                <LightbulbIcon />
+                Why This Is Worth Noting
+              </div>
+              <p className="text-amber-900 text-sm">{whyThisMatters}</p>
             </div>
-            <p className="text-sm text-gray-600">{whatToWatchFor}</p>
-          </div>
-        )}
+          )}
 
-        {/* Key People */}
-        {involvedAccounts.length > 0 && (
-          <div className="mt-4">
+          {/* Key Takeaways */}
+          <div className="mt-6">
             <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 mb-3">
-              <UserIcon />
-              Key People
+              <BoltIcon />
+              Key Takeaways
             </div>
-            <div className="flex flex-wrap gap-2">
-              {involvedAccounts.map((handle) => (
-                <div key={handle} className="person-card">
-                  <div className="person-avatar">
-                    {handle.replace('@', '').charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium">{handle}</div>
-                  </div>
+            <div className="space-y-2">
+              {abhScore.friendships > 5 && (
+                <div className="flex items-start gap-3">
+                  <span className="w-6 h-6 rounded-full bg-red-100 text-red-700 flex items-center justify-center text-xs font-semibold flex-shrink-0">1</span>
+                  <span className="text-sm text-gray-700">
+                    Strong friendships angle ({abhScore.friendships}/10) - touches on connection and support
+                  </span>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Source Posts / Tweet Embeds */}
-        {keyPosts.length > 0 && (
-          <div className="mt-4">
-            <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 mb-3">
-              <ChatIcon />
-              Source Posts
-            </div>
-            <div className="space-y-3">
-              {keyPosts.slice(0, isExpanded ? keyPosts.length : 2).map((post, idx) => (
-                <div key={idx}>
-                  {post.tweetUrl ? (
-                    <TweetEmbed url={post.tweetUrl} />
-                  ) : (
-                    <div className="border border-gray-200 rounded-xl p-4 bg-white">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="person-avatar w-8 h-8 text-xs">
-                          {post.handle.replace('@', '').charAt(0).toUpperCase()}
-                        </div>
-                        <span className="font-medium text-sm">{post.handle}</span>
-                      </div>
-                      <p className="text-sm text-gray-700">
-                        {post.postText || post.postSummary}
-                      </p>
-                      {(post.likes || post.retweets) && (
-                        <div className="flex gap-4 mt-2 text-xs text-gray-500">
-                          {post.likes && <span>❤️ {post.likes.toLocaleString()}</span>}
-                          {post.retweets && <span>🔄 {post.retweets.toLocaleString()}</span>}
-                        </div>
-                      )}
-                    </div>
-                  )}
+              )}
+              {abhScore.ai > 5 && (
+                <div className="flex items-start gap-3">
+                  <span className="w-6 h-6 rounded-full bg-red-100 text-red-700 flex items-center justify-center text-xs font-semibold flex-shrink-0">2</span>
+                  <span className="text-sm text-gray-700">
+                    High AI relevance ({abhScore.ai}/10) - relates to AI, tech, and staying human in the AI era
+                  </span>
                 </div>
-              ))}
-              {keyPosts.length > 2 && (
-                <button
-                  onClick={() => setIsExpanded(!isExpanded)}
-                  className="text-sm font-medium w-full py-2 rounded-lg hover:bg-gray-50"
-                  style={{ color: 'var(--red)' }}
-                >
-                  {isExpanded ? 'Show less' : `Show ${keyPosts.length - 2} more`}
-                </button>
+              )}
+              {abhScore.ambition > 5 && (
+                <div className="flex items-start gap-3">
+                  <span className="w-6 h-6 rounded-full bg-red-100 text-red-700 flex items-center justify-center text-xs font-semibold flex-shrink-0">3</span>
+                  <span className="text-sm text-gray-700">
+                    High ambition factor ({abhScore.ambition}/10) - relates to career, building, or goals
+                  </span>
+                </div>
               )}
             </div>
           </div>
-        )}
 
-        {/* Related Topics */}
-        {relatedTopics.length > 0 && (
-          <div className="mt-4">
-            <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 mb-2">
-              <HashtagIcon />
-              Related Topics
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {relatedTopics.map((topic) => (
-                <span key={topic} className="topic-tag">
-                  {topic}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Engagement Actions */}
-        {engagementOpportunity && (
-          <div className="mt-6 pt-4 border-t border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className={`pill ${urgencyColors[engagementOpportunity.urgency]}`}>
-                  {engagementOpportunity.urgency.toUpperCase()} PRIORITY
-                </span>
-                <p className="text-sm text-gray-600 mt-1">
-                  {engagementOpportunity.suggestedAngle}
-                </p>
+          {/* Key Insight */}
+          {keyInsight && (
+            <div className="mt-6">
+              <div className="flex items-center gap-2 text-sm font-semibold text-red-700 mb-2">
+                <SparklesIcon />
+                The Key Insight
               </div>
-              <div className="flex gap-2">
+              <div className="p-4 bg-red-50 rounded-xl border border-red-100 italic text-red-900">
+                "{keyInsight}"
+              </div>
+            </div>
+          )}
+
+          {/* What to Watch For */}
+          {whatToWatchFor && (
+            <div className="mt-6">
+              <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 mb-2">
+                <EyeIcon />
+                What to Watch For
+              </div>
+              <p className="text-sm text-gray-600">{whatToWatchFor}</p>
+            </div>
+          )}
+
+          {/* Key People */}
+          {involvedAccounts.length > 0 && (
+            <div className="mt-6">
+              <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 mb-3">
+                <UserIcon />
+                Key People
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {involvedAccounts.map((handle) => (
+                  <a
+                    key={handle}
+                    href={`https://twitter.com/${handle.replace('@', '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-red-400 to-red-600 flex items-center justify-center text-white text-sm font-medium">
+                      {handle.replace('@', '').charAt(0).toUpperCase()}
+                    </div>
+                    <span className="text-sm font-medium text-gray-700">{handle}</span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Source Posts */}
+          {keyPosts.length > 0 && (
+            <div className="mt-6">
+              <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 mb-3">
+                <ChatIcon />
+                Source Posts
+              </div>
+              <div className="space-y-3">
+                {keyPosts.slice(0, isExpanded ? keyPosts.length : 2).map((post, idx) => (
+                  <div key={idx}>
+                    {post.tweetUrl ? (
+                      <TweetEmbed url={post.tweetUrl} />
+                    ) : (
+                      <div className="border border-gray-200 rounded-xl p-4 bg-gray-50">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 text-xs font-medium">
+                            {post.handle.replace('@', '').charAt(0).toUpperCase()}
+                          </div>
+                          <span className="font-medium text-sm">{post.handle}</span>
+                        </div>
+                        <p className="text-sm text-gray-700">
+                          {post.postText || post.postSummary}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {keyPosts.length > 2 && (
+                  <button
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    className="text-sm font-medium w-full py-2 rounded-lg hover:bg-gray-50 text-red-700"
+                  >
+                    {isExpanded ? 'Show less' : `Show ${keyPosts.length - 2} more`}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Related Topics */}
+          {relatedTopics.length > 0 && (
+            <div className="mt-6">
+              <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 mb-2">
+                <HashtagIcon />
+                Related Topics
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {relatedTopics.map((topic) => (
+                  <span key={topic} className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
+                    {topic}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Engagement Opportunity */}
+          {engagementOpportunity && (
+            <div className="mt-6 p-4 bg-gradient-to-r from-red-50 to-pink-50 rounded-xl border border-red-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className={`text-xs font-semibold px-2 py-1 rounded ${urgencyColors[engagementOpportunity.urgency]}`}>
+                    {engagementOpportunity.urgency.toUpperCase()} PRIORITY
+                  </span>
+                  <p className="text-sm text-gray-700 mt-2">
+                    {engagementOpportunity.suggestedAngle}
+                  </p>
+                </div>
                 <button
                   onClick={() => onEngage?.(id, engagementOpportunity.type)}
-                  className="btn-primary text-sm"
+                  className="px-4 py-2 bg-red-700 text-white rounded-lg text-sm font-medium hover:bg-red-800 transition-colors"
                 >
                   {engagementOpportunity.type === 'reply' && 'Reply'}
                   {engagementOpportunity.type === 'quote_tweet' && 'Quote Tweet'}
@@ -475,14 +601,42 @@ export default function InsightCard({
                 </button>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Footer */}
-        <div className="mt-4 pt-3 border-t border-gray-100 text-xs text-gray-400">
-          Scanned {scannedAt ? new Date(scannedAt).toLocaleString() : 'recently'}
+          {/* Footer */}
+          <div className="mt-6 pt-4 border-t border-gray-100 text-xs text-gray-400 text-center">
+            Scanned {scannedAt ? new Date(scannedAt).toLocaleString() : 'recently'}
+          </div>
         </div>
       </div>
     </div>
+  );
+}
+
+// ==========================================
+// DEFAULT EXPORT - Compact card + Modal
+// ==========================================
+interface InsightCardWithModalProps extends InsightCardProps {
+  isSaved?: boolean;
+  onToggleSave?: () => void;
+}
+
+export default function InsightCard(props: InsightCardWithModalProps) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  return (
+    <>
+      <InsightCardCompact
+        {...props}
+        isSaved={props.isSaved}
+        onToggleSave={props.onToggleSave}
+        onClick={() => setIsModalOpen(true)}
+      />
+      <InsightModal
+        {...props}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
+    </>
   );
 }

@@ -452,47 +452,34 @@ export default function PulseTab() {
               </div>
 
               {/* Insights in this group */}
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {groupInsights.map((insight) => (
-                  <div key={insight.id} className="relative">
-                    {/* Save Button */}
-                    <button
-                      onClick={() => toggleSaveInsight(insight.id)}
-                      className={`absolute top-4 right-14 z-10 p-1.5 rounded-lg transition-colors ${
-                        savedInsightIds.has(insight.id)
-                          ? 'bg-amber-100 text-amber-600'
-                          : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
-                      }`}
-                      title={savedInsightIds.has(insight.id) ? 'Remove from saved' : 'Save for later'}
-                    >
-                      <svg className="w-4 h-4" fill={savedInsightIds.has(insight.id) ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                      </svg>
-                    </button>
-                    <InsightCard
-                      {...transformInsight(insight)}
-                      onDismiss={async (id) => {
-                        // Try API first
-                        try {
-                          await fetch(`/api/pulse/insights/${id}`, {
-                            method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ status: 'dismissed' }),
-                          });
-                        } catch {
-                          // Fallback handled below
-                        }
-                        // Also remove from localStorage
-                        const allInsights = JSON.parse(localStorage.getItem(INSIGHTS_KEY) || '[]');
-                        const filtered = allInsights.filter((i: PulseInsight) => i.id !== id);
-                        saveInsightsToLocal(filtered);
-                        setInsights(prev => prev.filter(i => i.id !== id));
-                      }}
-                      onEngage={async (id) => {
-                        console.log('Engage with insight:', id);
-                      }}
-                    />
-                  </div>
+                  <InsightCard
+                    key={insight.id}
+                    {...transformInsight(insight)}
+                    isSaved={savedInsightIds.has(insight.id)}
+                    onToggleSave={() => toggleSaveInsight(insight.id)}
+                    onDismiss={async (id) => {
+                      // Try API first
+                      try {
+                        await fetch(`/api/pulse/insights/${id}`, {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ status: 'dismissed' }),
+                        });
+                      } catch {
+                        // Fallback handled below
+                      }
+                      // Also remove from localStorage
+                      const allInsights = JSON.parse(localStorage.getItem(INSIGHTS_KEY) || '[]');
+                      const filtered = allInsights.filter((i: PulseInsight) => i.id !== id);
+                      saveInsightsToLocal(filtered);
+                      setInsights(prev => prev.filter(i => i.id !== id));
+                    }}
+                    onEngage={async (id) => {
+                      console.log('Engage with insight:', id);
+                    }}
+                  />
                 ))}
               </div>
             </div>
