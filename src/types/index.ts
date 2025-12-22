@@ -233,7 +233,7 @@ export interface GenerationCombination {
 // APP STATE TYPES
 // =====================
 
-export type TabId = 'diary' | 'pulse' | 'studio' | 'library';
+export type TabId = 'diary' | 'pulse' | 'roundtable' | 'studio' | 'library';
 
 export interface AppSettings {
   claudeApiKey?: string;
@@ -241,6 +241,108 @@ export interface AppSettings {
   serpApiKey?: string;
   autoSaveInterval: number; // milliseconds
   theme: 'light' | 'dark' | 'system';
+}
+
+// =====================
+// AI ROUNDTABLE TYPES
+// =====================
+
+export interface PsychologyScore {
+  score: number; // 1-10
+  analysis: string;
+  details?: string[];
+}
+
+export interface AdditionalTriggers {
+  socialProof: boolean;
+  lossAversion: boolean;
+  identitySignaling: boolean;
+  specificityLevel: 'low' | 'medium' | 'high';
+  vulnerabilityFactor: 'low' | 'medium' | 'high';
+  permissionGiving: boolean;
+  patternCompletion: boolean;
+}
+
+export interface AlignmentScores {
+  abhFit: number; // 1-10 - Ambitious But Human balance
+  voiceMatch: number; // 1-10 - Could this be YOUR voice?
+  communityResonance: number; // 1-10 - Would your people care?
+}
+
+export interface AIAnalysis {
+  model: 'grok' | 'claude';
+  curiosityGap: PsychologyScore;
+  predictionViolation: PsychologyScore;
+  habituationBypass: PsychologyScore;
+  additionalTriggers: AdditionalTriggers;
+  keyInsight: string;
+  alignmentScores: AlignmentScores;
+}
+
+export interface RoundtableAgreement {
+  points: string[];
+}
+
+export interface RoundtableDifference {
+  grokFocus: string;
+  claudeFocus: string;
+}
+
+export interface ActionableTakeaway {
+  category: 'structure' | 'language' | 'positioning' | 'timing' | 'format';
+  title: string;
+  description: string;
+  example: string;
+}
+
+export interface TweetAnalysis {
+  id: string;
+  tweet: {
+    author: string;
+    handle: string;
+    text: string;
+    url?: string;
+    engagement: {
+      likes: number;
+      replies: number;
+      retweets: number;
+    };
+    postedAt: string;
+  };
+  grokAnalysis: AIAnalysis;
+  claudeAnalysis: AIAnalysis;
+  agreements: RoundtableAgreement;
+  differences: RoundtableDifference;
+  takeaways: ActionableTakeaway[];
+  analyzedAt: string;
+}
+
+export interface WeeklyPatternReport {
+  id: string;
+  weekOf: string;
+  topCuriosityGapStructures: {
+    structure: string;
+    avgScore: number;
+    examples: string[];
+  }[];
+  topPredictionViolations: {
+    pattern: string;
+    frequency: number;
+  }[];
+  habituationBypasses: {
+    technique: string;
+    effectiveness: number;
+  }[];
+  watchlistTrends: {
+    handle: string;
+    pattern: string;
+  }[];
+  recommendations: {
+    tryThis: string;
+    avoidThis: string;
+    experiment: string;
+  };
+  generatedAt: string;
 }
 
 // =====================
