@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Layout from '@/components/Layout';
 import { DiaryTab, BooksTab } from '@/components/tabs';
 import PulseTab from '@/components/pulse/PulseTab';
-import VibeTab from '@/components/vibe/VibeTab';
 import StudioTab from '@/components/studio/StudioTab';
 import { GenerationPanel } from '@/components/generation';
 import type { TabId, DiaryEntry } from '@/types';
@@ -32,7 +31,6 @@ export default function Home() {
         />
       )}
       {activeTab === 'pulse' && <PulseTab />}
-      {activeTab === 'vibe' && <VibeTab />}
       {activeTab === 'studio' && <StudioTab />}
       {activeTab === 'library' && <BooksTab />}
 
