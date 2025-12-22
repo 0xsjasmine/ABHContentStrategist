@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import {
-  MessageSquare,
+  Link2,
   Sparkles,
   Radio,
   Target,
@@ -15,11 +15,14 @@ import {
   Repeat2,
   BookmarkPlus,
   Wand2,
-  TrendingUp
+  TrendingUp,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink
 } from 'lucide-react';
 import type { TweetAnalysis, AIAnalysis } from '@/types';
 
-function ScoreBadge({ score, label }: { score: number; label: string }) {
+function ScoreBadge({ score, label }: { score: number; label?: string }) {
   const getColor = (s: number) => {
     if (s >= 8) return 'bg-green-100 text-green-700 border-green-200';
     if (s >= 6) return 'bg-yellow-100 text-yellow-700 border-yellow-200';
@@ -29,7 +32,7 @@ function ScoreBadge({ score, label }: { score: number; label: string }) {
 
   return (
     <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border text-xs font-medium ${getColor(score)}`}>
-      <span>{label}</span>
+      {label && <span>{label}</span>}
       <span className="font-bold">{score}/10</span>
     </div>
   );
@@ -59,7 +62,7 @@ function AIAnalysisCard({ analysis, isGrok }: { analysis: AIAnalysis; isGrok: bo
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-sm font-medium text-[#1A1A1A]">Curiosity Gap</span>
-            <ScoreBadge score={analysis.curiosityGap.score} label="" />
+            <ScoreBadge score={analysis.curiosityGap.score} />
           </div>
           <p className="text-sm text-[#666] leading-relaxed">{analysis.curiosityGap.analysis}</p>
         </div>
@@ -68,7 +71,7 @@ function AIAnalysisCard({ analysis, isGrok }: { analysis: AIAnalysis; isGrok: bo
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-sm font-medium text-[#1A1A1A]">Prediction Violation</span>
-            <ScoreBadge score={analysis.predictionViolation.score} label="" />
+            <ScoreBadge score={analysis.predictionViolation.score} />
           </div>
           <p className="text-sm text-[#666] leading-relaxed">{analysis.predictionViolation.analysis}</p>
           {analysis.predictionViolation.details && analysis.predictionViolation.details.length > 0 && (
@@ -84,7 +87,7 @@ function AIAnalysisCard({ analysis, isGrok }: { analysis: AIAnalysis; isGrok: bo
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-sm font-medium text-[#1A1A1A]">Habituation Bypass</span>
-            <ScoreBadge score={analysis.habituationBypass.score} label="" />
+            <ScoreBadge score={analysis.habituationBypass.score} />
           </div>
           <p className="text-sm text-[#666] leading-relaxed">{analysis.habituationBypass.analysis}</p>
         </div>
@@ -145,44 +148,52 @@ function AIAnalysisCard({ analysis, isGrok }: { analysis: AIAnalysis; isGrok: bo
 }
 
 export default function RoundtableTab() {
+  const [tweetUrl, setTweetUrl] = useState('');
+  const [showManualInput, setShowManualInput] = useState(false);
   const [tweetText, setTweetText] = useState('');
   const [author, setAuthor] = useState('');
-  const [handle, setHandle] = useState('');
-  const [likes, setLikes] = useState('');
-  const [replies, setReplies] = useState('');
-  const [retweets, setRetweets] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [error, setError] = useState('');
   const [analysis, setAnalysis] = useState<TweetAnalysis | null>(null);
   const [savedAnalyses, setSavedAnalyses] = useState<TweetAnalysis[]>([]);
 
+  const isValidTweetUrl = (url: string) => {
+    return url.match(/^https?:\/\/(twitter\.com|x\.com)\/[^\/]+\/status\/\d+/);
+  };
+
   const handleAnalyze = async () => {
-    if (!tweetText.trim() || !author.trim()) return;
+    setError('');
+
+    // Determine what to send
+    const payload: Record<string, unknown> = {};
+
+    if (tweetUrl && isValidTweetUrl(tweetUrl)) {
+      payload.url = tweetUrl;
+    } else if (tweetText && author) {
+      payload.tweet = tweetText;
+      payload.author = author;
+    } else {
+      setError('Please enter a valid tweet URL or fill in the manual input fields');
+      return;
+    }
 
     setIsAnalyzing(true);
     try {
       const response = await fetch('/api/roundtable/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tweet: tweetText,
-          author,
-          handle: handle || author,
-          engagement: {
-            likes: parseInt(likes) || 0,
-            replies: parseInt(replies) || 0,
-            retweets: parseInt(retweets) || 0,
-          },
-        }),
+        body: JSON.stringify(payload),
       });
 
+      const result = await response.json();
+
       if (!response.ok) {
-        throw new Error('Analysis failed');
+        throw new Error(result.error || 'Analysis failed');
       }
 
-      const result = await response.json();
       setAnalysis(result);
-    } catch (error) {
-      console.error('Analysis error:', error);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Analysis failed');
     } finally {
       setIsAnalyzing(false);
     }
@@ -192,14 +203,19 @@ export default function RoundtableTab() {
     if (analysis) {
       setSavedAnalyses(prev => [analysis, ...prev]);
       // Clear form
+      setTweetUrl('');
       setTweetText('');
       setAuthor('');
-      setHandle('');
-      setLikes('');
-      setReplies('');
-      setRetweets('');
       setAnalysis(null);
     }
+  };
+
+  const handleNewAnalysis = () => {
+    setTweetUrl('');
+    setTweetText('');
+    setAuthor('');
+    setAnalysis(null);
+    setError('');
   };
 
   return (
@@ -207,110 +223,96 @@ export default function RoundtableTab() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-semibold text-[#1A1A1A]">AI Roundtable</h1>
-        <p className="text-[#666] mt-1">Multiple AI perspectives on what makes content work</p>
+        <p className="text-[#666] mt-1">Grok & Claude dissect what makes tweets work psychologically</p>
       </div>
 
       {/* Input Section */}
-      <div className="bg-[#FAFAFA] border border-[#EEE] rounded-xl p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <MessageSquare className="w-5 h-5 text-[#C41E3A]" />
-          <h2 className="font-medium text-[#1A1A1A]">Analyze a Tweet</h2>
-        </div>
-
-        <div className="space-y-4">
-          {/* Tweet Text */}
-          <div>
-            <label className="block text-sm font-medium text-[#1A1A1A] mb-1.5">Tweet Text</label>
-            <textarea
-              value={tweetText}
-              onChange={(e) => setTweetText(e.target.value)}
-              placeholder="Paste the tweet text here..."
-              className="w-full px-4 py-3 border border-[#DDD] rounded-xl text-sm resize-none focus:outline-none focus:border-[#C41E3A] bg-white"
-              rows={4}
-            />
-          </div>
-
-          {/* Author Info */}
-          <div className="grid grid-cols-2 gap-4">
+      {!analysis && (
+        <div className="bg-[#FAFAFA] border border-[#EEE] rounded-xl p-6">
+          <div className="space-y-4">
+            {/* URL Input */}
             <div>
-              <label className="block text-sm font-medium text-[#1A1A1A] mb-1.5">Author Name</label>
-              <input
-                type="text"
-                value={author}
-                onChange={(e) => setAuthor(e.target.value)}
-                placeholder="Leila Hormozi"
-                className="w-full px-4 py-2.5 border border-[#DDD] rounded-xl text-sm focus:outline-none focus:border-[#C41E3A] bg-white"
-              />
+              <label className="block text-sm font-medium text-[#1A1A1A] mb-2">
+                Paste Tweet URL
+              </label>
+              <div className="flex gap-3">
+                <div className="flex-1 relative">
+                  <Link2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#999]" />
+                  <input
+                    type="url"
+                    value={tweetUrl}
+                    onChange={(e) => setTweetUrl(e.target.value)}
+                    placeholder="https://twitter.com/username/status/123456..."
+                    className="w-full pl-11 pr-4 py-3 border border-[#DDD] rounded-xl text-sm focus:outline-none focus:border-[#C41E3A] bg-white"
+                  />
+                </div>
+                <button
+                  onClick={handleAnalyze}
+                  disabled={(!tweetUrl && !tweetText) || isAnalyzing}
+                  className="px-6 py-3 bg-[#C41E3A] text-white rounded-xl font-medium hover:bg-[#A31830] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Target className="w-4 h-4" />
+                      Analyze
+                    </>
+                  )}
+                </button>
+              </div>
+              <p className="text-xs text-[#999] mt-2">
+                Supports twitter.com and x.com links
+              </p>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-[#1A1A1A] mb-1.5">Handle</label>
-              <input
-                type="text"
-                value={handle}
-                onChange={(e) => setHandle(e.target.value)}
-                placeholder="@LeilaHormozi"
-                className="w-full px-4 py-2.5 border border-[#DDD] rounded-xl text-sm focus:outline-none focus:border-[#C41E3A] bg-white"
-              />
-            </div>
-          </div>
 
-          {/* Engagement Stats */}
-          <div>
-            <label className="block text-sm font-medium text-[#1A1A1A] mb-1.5">Engagement (optional)</label>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="flex items-center gap-2 px-3 py-2 bg-white border border-[#DDD] rounded-xl">
-                <Heart className="w-4 h-4 text-pink-500" />
-                <input
-                  type="number"
-                  value={likes}
-                  onChange={(e) => setLikes(e.target.value)}
-                  placeholder="Likes"
-                  className="w-full text-sm focus:outline-none"
-                />
-              </div>
-              <div className="flex items-center gap-2 px-3 py-2 bg-white border border-[#DDD] rounded-xl">
-                <MessageCircle className="w-4 h-4 text-blue-500" />
-                <input
-                  type="number"
-                  value={replies}
-                  onChange={(e) => setReplies(e.target.value)}
-                  placeholder="Replies"
-                  className="w-full text-sm focus:outline-none"
-                />
-              </div>
-              <div className="flex items-center gap-2 px-3 py-2 bg-white border border-[#DDD] rounded-xl">
-                <Repeat2 className="w-4 h-4 text-green-500" />
-                <input
-                  type="number"
-                  value={retweets}
-                  onChange={(e) => setRetweets(e.target.value)}
-                  placeholder="Retweets"
-                  className="w-full text-sm focus:outline-none"
-                />
-              </div>
-            </div>
-          </div>
+            {/* Manual Input Toggle */}
+            <button
+              onClick={() => setShowManualInput(!showManualInput)}
+              className="flex items-center gap-2 text-sm text-[#666] hover:text-[#1A1A1A] transition-colors"
+            >
+              {showManualInput ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              Or paste tweet text manually
+            </button>
 
-          {/* Analyze Button */}
-          <button
-            onClick={handleAnalyze}
-            disabled={!tweetText.trim() || !author.trim() || isAnalyzing}
-            className="w-full py-3 bg-[#C41E3A] text-white rounded-xl font-medium hover:bg-[#A31830] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {isAnalyzing ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Analyzing with Grok & Claude...
-              </>
-            ) : (
-              <>
-                <Target className="w-4 h-4" />
-                Run AI Roundtable
-              </>
+            {/* Manual Input Fields */}
+            {showManualInput && (
+              <div className="space-y-3 pt-2">
+                <div>
+                  <label className="block text-sm font-medium text-[#1A1A1A] mb-1.5">Tweet Text</label>
+                  <textarea
+                    value={tweetText}
+                    onChange={(e) => setTweetText(e.target.value)}
+                    placeholder="Paste the tweet text here..."
+                    className="w-full px-4 py-3 border border-[#DDD] rounded-xl text-sm resize-none focus:outline-none focus:border-[#C41E3A] bg-white"
+                    rows={3}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#1A1A1A] mb-1.5">Author</label>
+                  <input
+                    type="text"
+                    value={author}
+                    onChange={(e) => setAuthor(e.target.value)}
+                    placeholder="@username or name"
+                    className="w-full px-4 py-2.5 border border-[#DDD] rounded-xl text-sm focus:outline-none focus:border-[#C41E3A] bg-white"
+                  />
+                </div>
+              </div>
             )}
-          </button>
+
+            {/* Error Message */}
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                {error}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Analysis Results */}
       {analysis && (
@@ -322,24 +324,50 @@ export default function RoundtableTab() {
                 <p className="font-semibold text-[#1A1A1A]">{analysis.tweet.author}</p>
                 <p className="text-sm text-[#999]">@{analysis.tweet.handle}</p>
               </div>
-              {(analysis.tweet.engagement.likes > 0 || analysis.tweet.engagement.replies > 0) && (
-                <div className="flex items-center gap-3 text-sm text-[#666]">
-                  {analysis.tweet.engagement.likes > 0 && (
-                    <span className="flex items-center gap-1">
-                      <Heart className="w-4 h-4" />
-                      {analysis.tweet.engagement.likes.toLocaleString()}
-                    </span>
-                  )}
-                  {analysis.tweet.engagement.replies > 0 && (
-                    <span className="flex items-center gap-1">
-                      <MessageCircle className="w-4 h-4" />
-                      {analysis.tweet.engagement.replies.toLocaleString()}
-                    </span>
-                  )}
-                </div>
-              )}
+              <div className="flex items-center gap-3">
+                {analysis.tweet.url && (
+                  <a
+                    href={analysis.tweet.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#C41E3A] hover:text-[#A31830] transition-colors"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                )}
+                <button
+                  onClick={handleNewAnalysis}
+                  className="text-sm text-[#666] hover:text-[#1A1A1A] transition-colors"
+                >
+                  Analyze another →
+                </button>
+              </div>
             </div>
-            <p className="text-[#1A1A1A] leading-relaxed">{analysis.tweet.text}</p>
+            <p className="text-[#1A1A1A] leading-relaxed text-lg">{analysis.tweet.text}</p>
+
+            {/* Engagement if available */}
+            {(analysis.tweet.engagement.likes > 0 || analysis.tweet.engagement.replies > 0) && (
+              <div className="flex items-center gap-4 mt-4 pt-4 border-t border-[#EEE] text-sm text-[#666]">
+                {analysis.tweet.engagement.likes > 0 && (
+                  <span className="flex items-center gap-1.5">
+                    <Heart className="w-4 h-4 text-pink-500" />
+                    {analysis.tweet.engagement.likes.toLocaleString()}
+                  </span>
+                )}
+                {analysis.tweet.engagement.replies > 0 && (
+                  <span className="flex items-center gap-1.5">
+                    <MessageCircle className="w-4 h-4 text-blue-500" />
+                    {analysis.tweet.engagement.replies.toLocaleString()}
+                  </span>
+                )}
+                {analysis.tweet.engagement.retweets > 0 && (
+                  <span className="flex items-center gap-1.5">
+                    <Repeat2 className="w-4 h-4 text-green-500" />
+                    {analysis.tweet.engagement.retweets.toLocaleString()}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* AI Analyses Side by Side */}
@@ -372,11 +400,15 @@ export default function RoundtableTab() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-xs font-medium text-blue-600 mb-1">Grok focuses on:</p>
+                <p className="text-xs font-medium text-blue-600 mb-1 flex items-center gap-1">
+                  <Radio className="w-3 h-3" /> Grok focuses on:
+                </p>
                 <p className="text-sm text-blue-800">{analysis.differences.grokFocus}</p>
               </div>
               <div>
-                <p className="text-xs font-medium text-blue-600 mb-1">Claude focuses on:</p>
+                <p className="text-xs font-medium text-blue-600 mb-1 flex items-center gap-1">
+                  <Sparkles className="w-3 h-3" /> Claude focuses on:
+                </p>
                 <p className="text-sm text-blue-800">{analysis.differences.claudeFocus}</p>
               </div>
             </div>
@@ -429,7 +461,7 @@ export default function RoundtableTab() {
       )}
 
       {/* Saved Analyses */}
-      {savedAnalyses.length > 0 && (
+      {savedAnalyses.length > 0 && !analysis && (
         <div className="border-t border-[#EEE] pt-6">
           <h2 className="font-semibold text-[#1A1A1A] mb-4">Saved Analyses ({savedAnalyses.length})</h2>
           <div className="space-y-3">

@@ -1,6 +1,54 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 
+// Extract tweet text from oEmbed HTML
+function extractTweetText(html: string): string {
+  // The tweet text is inside <p> tags within the blockquote
+  const pMatch = html.match(/<p[^>]*>([\s\S]*?)<\/p>/);
+  if (pMatch) {
+    // Clean up HTML entities and tags
+    return pMatch[1]
+      .replace(/<[^>]+>/g, '') // Remove HTML tags
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&nbsp;/g, ' ')
+      .trim();
+  }
+  return '';
+}
+
+// Fetch tweet data from Twitter oEmbed API
+async function fetchTweetFromOEmbed(tweetUrl: string): Promise<{
+  text: string;
+  author: string;
+  html: string;
+}> {
+  const oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(tweetUrl)}&omit_script=true`;
+
+  const response = await fetch(oembedUrl);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch tweet: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const text = extractTweetText(data.html);
+
+  return {
+    text,
+    author: data.author_name || 'Unknown',
+    html: data.html,
+  };
+}
+
+// Extract handle from tweet URL
+function extractHandle(url: string): string {
+  const match = url.match(/twitter\.com\/([^\/]+)|x\.com\/([^\/]+)/);
+  return match ? (match[1] || match[2]) : '';
+}
+
 const PSYCHOLOGY_PROMPT = `You are an expert content psychologist analyzing viral tweets. Analyze the following tweet using these psychological frameworks:
 
 1. CURIOSITY GAP (George Loewenstein's Information Gap Theory)
@@ -93,7 +141,6 @@ async function analyzeWithClaude(tweet: string, author: string): Promise<unknown
     throw new Error('Unexpected response type');
   }
 
-  // Extract JSON from response
   const jsonMatch = content.text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
     throw new Error('Could not parse Claude response');
@@ -143,7 +190,6 @@ async function analyzeWithGrok(tweet: string, author: string): Promise<unknown> 
     throw new Error('No content in Grok response');
   }
 
-  // Extract JSON from response
   const jsonMatch = content.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
     throw new Error('Could not parse Grok response');
@@ -158,23 +204,20 @@ function generateAgreements(
 ): string[] {
   const agreements: string[] = [];
 
-  // Compare curiosity gap scores
   const claudeCG = claudeAnalysis.curiosityGap as { score: number; analysis: string };
   const grokCG = grokAnalysis.curiosityGap as { score: number; analysis: string };
-  if (Math.abs(claudeCG.score - grokCG.score) <= 2) {
+  if (Math.abs(claudeCG.score - grokCG.score) <= 2 && claudeCG.score >= 6) {
     agreements.push(
       `Strong curiosity gap (avg ${((claudeCG.score + grokCG.score) / 2).toFixed(1)}/10)`
     );
   }
 
-  // Compare habituation bypass
   const claudeHB = claudeAnalysis.habituationBypass as { score: number };
   const grokHB = grokAnalysis.habituationBypass as { score: number };
   if (claudeHB.score >= 7 && grokHB.score >= 7) {
     agreements.push('Effective habituation bypass through unique framing');
   }
 
-  // Check for common triggers
   const claudeTriggers = claudeAnalysis.additionalTriggers as Record<string, unknown>;
   const grokTriggers = grokAnalysis.additionalTriggers as Record<string, unknown>;
   if (claudeTriggers.permissionGiving && grokTriggers.permissionGiving) {
@@ -182,6 +225,12 @@ function generateAgreements(
   }
   if (claudeTriggers.identitySignaling && grokTriggers.identitySignaling) {
     agreements.push('Strong identity signaling for target audience');
+  }
+
+  const claudePV = claudeAnalysis.predictionViolation as { score: number };
+  const grokPV = grokAnalysis.predictionViolation as { score: number };
+  if (claudePV.score >= 7 && grokPV.score >= 7) {
+    agreements.push('Powerful prediction violation that surprises and delights');
   }
 
   return agreements.length > 0
@@ -212,18 +261,17 @@ function generateTakeaways(
 }> {
   const takeaways = [];
 
-  // Structure takeaway based on curiosity gap
   const claudeCG = claudeAnalysis.curiosityGap as { score: number };
   if (claudeCG.score >= 7) {
+    const firstWords = tweet.split(' ').slice(0, 4).join(' ');
     takeaways.push({
       category: 'structure',
       title: 'Use curiosity gap openers',
       description: 'Open with information that creates a knowledge gap the reader wants to fill',
-      example: `Try: "The ${tweet.split(' ').slice(0, 3).join(' ')}..." structure`,
+      example: `Try: "${firstWords}..." structure`,
     });
   }
 
-  // Language takeaway based on habituation bypass
   const grokHB = grokAnalysis.habituationBypass as { score: number; details?: string[] };
   if (grokHB.score >= 7) {
     takeaways.push({
@@ -234,18 +282,26 @@ function generateTakeaways(
     });
   }
 
-  // Positioning takeaway based on prediction violation
-  const claudePV = claudeAnalysis.predictionViolation as { score: number };
+  const claudePV = claudeAnalysis.predictionViolation as { score: number; details?: string[] };
   if (claudePV.score >= 7) {
     takeaways.push({
       category: 'positioning',
       title: 'Violate expectations strategically',
       description: 'Set up one expectation, then deliver something surprisingly better',
-      example: 'Counter conventional wisdom with lived experience',
+      example: claudePV.details?.[1] || 'Counter conventional wisdom with lived experience',
     });
   }
 
-  // Default takeaway if none generated
+  const claudeTriggers = claudeAnalysis.additionalTriggers as Record<string, unknown>;
+  if (claudeTriggers.permissionGiving) {
+    takeaways.push({
+      category: 'timing',
+      title: 'Give permission',
+      description: 'Allow your audience to feel okay about something they secretly want',
+      example: 'Start with "It\'s okay to..." or "You don\'t have to..."',
+    });
+  }
+
   if (takeaways.length === 0) {
     takeaways.push({
       category: 'format',
@@ -255,16 +311,33 @@ function generateTakeaways(
     });
   }
 
-  return takeaways;
+  return takeaways.slice(0, 3);
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { tweet, author, handle, engagement, url, postedAt } = body;
+    let { tweet, author, handle, url } = body;
+    const { engagement } = body;
+
+    // If URL provided, fetch from oEmbed
+    if (url && !tweet) {
+      try {
+        const oembedData = await fetchTweetFromOEmbed(url);
+        tweet = oembedData.text;
+        author = oembedData.author;
+        handle = handle || extractHandle(url);
+      } catch (error) {
+        console.error('oEmbed fetch error:', error);
+        return NextResponse.json(
+          { error: 'Could not fetch tweet. Please paste the tweet text manually.' },
+          { status: 400 }
+        );
+      }
+    }
 
     if (!tweet || !author) {
-      return NextResponse.json({ error: 'Tweet and author are required' }, { status: 400 });
+      return NextResponse.json({ error: 'Tweet text and author are required' }, { status: 400 });
     }
 
     // Run both analyses in parallel
@@ -273,46 +346,28 @@ export async function POST(request: NextRequest) {
       analyzeWithGrok(tweet, handle || author),
     ]);
 
-    // Handle potential failures gracefully
+    const defaultAnalysis = {
+      curiosityGap: { score: 0, analysis: 'Analysis unavailable', details: [] },
+      predictionViolation: { score: 0, analysis: 'Analysis unavailable', details: [] },
+      habituationBypass: { score: 0, analysis: 'Analysis unavailable', details: [] },
+      additionalTriggers: {
+        socialProof: false,
+        lossAversion: false,
+        identitySignaling: false,
+        specificityLevel: 'low',
+        vulnerabilityFactor: 'low',
+        permissionGiving: false,
+        patternCompletion: false,
+      },
+      keyInsight: 'Analysis unavailable',
+      alignmentScores: { abhFit: 0, voiceMatch: 0, communityResonance: 0 },
+    };
+
     const claudeAnalysis =
-      claudeResult.status === 'fulfilled'
-        ? claudeResult.value
-        : {
-            curiosityGap: { score: 0, analysis: 'Analysis unavailable', details: [] },
-            predictionViolation: { score: 0, analysis: 'Analysis unavailable', details: [] },
-            habituationBypass: { score: 0, analysis: 'Analysis unavailable', details: [] },
-            additionalTriggers: {
-              socialProof: false,
-              lossAversion: false,
-              identitySignaling: false,
-              specificityLevel: 'low',
-              vulnerabilityFactor: 'low',
-              permissionGiving: false,
-              patternCompletion: false,
-            },
-            keyInsight: 'Claude analysis unavailable',
-            alignmentScores: { abhFit: 0, voiceMatch: 0, communityResonance: 0 },
-          };
+      claudeResult.status === 'fulfilled' ? claudeResult.value : defaultAnalysis;
 
     const grokAnalysis =
-      grokResult.status === 'fulfilled'
-        ? grokResult.value
-        : {
-            curiosityGap: { score: 0, analysis: 'Analysis unavailable', details: [] },
-            predictionViolation: { score: 0, analysis: 'Analysis unavailable', details: [] },
-            habituationBypass: { score: 0, analysis: 'Analysis unavailable', details: [] },
-            additionalTriggers: {
-              socialProof: false,
-              lossAversion: false,
-              identitySignaling: false,
-              specificityLevel: 'low',
-              vulnerabilityFactor: 'low',
-              permissionGiving: false,
-              patternCompletion: false,
-            },
-            keyInsight: 'Grok analysis unavailable',
-            alignmentScores: { abhFit: 0, voiceMatch: 0, communityResonance: 0 },
-          };
+      grokResult.status === 'fulfilled' ? grokResult.value : defaultAnalysis;
 
     const analysis = {
       id: crypto.randomUUID(),
@@ -322,7 +377,7 @@ export async function POST(request: NextRequest) {
         text: tweet,
         url,
         engagement: engagement || { likes: 0, replies: 0, retweets: 0 },
-        postedAt: postedAt || new Date().toISOString(),
+        postedAt: new Date().toISOString(),
       },
       grokAnalysis: {
         model: 'grok',

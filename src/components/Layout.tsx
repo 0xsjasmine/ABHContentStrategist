@@ -14,6 +14,7 @@ interface LayoutProps {
 const tabs = [
   { id: 'diary' as TabId, label: 'Diary' },
   { id: 'pulse' as TabId, label: 'Pulse' },
+  { id: 'roundtable' as TabId, label: 'Roundtable' },
   { id: 'studio' as TabId, label: 'Studio' },
   { id: 'library' as TabId, label: 'Library' },
 ];

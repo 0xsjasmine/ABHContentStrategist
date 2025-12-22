@@ -4,12 +4,13 @@ import { useState } from 'react';
 import Layout from '@/components/Layout';
 import { DiaryTab, BooksTab } from '@/components/tabs';
 import PulseTab from '@/components/pulse/PulseTab';
+import RoundtableTab from '@/components/roundtable/RoundtableTab';
 import StudioTab from '@/components/studio/StudioTab';
 import { GenerationPanel } from '@/components/generation';
 import type { TabId, DiaryEntry } from '@/types';
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<TabId>('pulse');
+  const [activeTab, setActiveTab] = useState<TabId>('roundtable');
   const [selectedDiaryEntry, setSelectedDiaryEntry] = useState<DiaryEntry | null>(null);
   const [showGeneration, setShowGeneration] = useState(false);
 
@@ -31,6 +32,7 @@ export default function Home() {
         />
       )}
       {activeTab === 'pulse' && <PulseTab />}
+      {activeTab === 'roundtable' && <RoundtableTab />}
       {activeTab === 'studio' && <StudioTab />}
       {activeTab === 'library' && <BooksTab />}
 
