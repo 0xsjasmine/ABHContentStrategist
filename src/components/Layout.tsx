@@ -45,14 +45,16 @@ export default function Layout({ children, activeTab, onTabChange }: LayoutProps
   }, []);
 
   return (
-    <div className="min-h-screen flex bg-white">
+    <div className="min-h-screen flex bg-[#FFF6D9]">
       {/* Side Navigation - Always Expanded (Text Only) */}
       <nav className="sidebar fixed left-0 top-0 h-full z-40 flex flex-col py-6 w-32">
         {/* Logo / Brand */}
-        <div className="mb-8 px-4">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[#C41E3A]">
-            <span className="text-white text-sm font-semibold">A</span>
-          </div>
+        <div className="mb-8 px-3">
+          <img
+            src="/logo.png"
+            alt="Ambitious But Human"
+            className="w-full h-auto"
+          />
         </div>
 
         {/* Nav Items - Text Only */}
@@ -94,7 +96,7 @@ export default function Layout({ children, activeTab, onTabChange }: LayoutProps
       </nav>
 
       {/* Main Content */}
-      <main className="flex-1 ml-32 min-h-screen bg-white">
+      <main className="flex-1 ml-32 min-h-screen bg-[#FFF6D9]">
         <div className="max-w-6xl mx-auto px-8 py-10">
           {children}
         </div>
