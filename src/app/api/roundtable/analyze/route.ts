@@ -126,7 +126,8 @@ async function analyzeWithClaude(tweet: string, author: string): Promise<{ analy
   const client = new Anthropic({ apiKey });
 
   // Try primary model, fallback to older if needed
-  const models = ['claude-sonnet-4-5-20250514', 'claude-3-5-sonnet-20241022'];
+  // Claude model IDs: https://docs.anthropic.com/en/docs/about-claude/models
+  const models = ['claude-sonnet-4-5-20250514', 'claude-3-5-sonnet-20241022', 'claude-3-5-sonnet-latest'];
   let lastError: Error | null = null;
 
   for (const model of models) {
@@ -162,11 +163,14 @@ async function analyzeWithClaude(tweet: string, author: string): Promise<{ analy
         },
       };
     } catch (error) {
-      console.error(`Claude model ${model} failed:`, error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error(`Claude model ${model} failed:`, errorMessage);
       lastError = error instanceof Error ? error : new Error(String(error));
+      // Continue to next model
     }
   }
 
+  console.error('All Claude models failed. Last error:', lastError?.message);
   throw lastError || new Error('All Claude models failed');
 }
 

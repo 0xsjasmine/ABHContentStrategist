@@ -838,6 +838,7 @@ function AddTweetsPanel({
     const queue: UrlQueueItem[] = urls.map(url => ({ url, status: 'pending' }));
     setAnalysisQueue(queue);
     setIsAnalyzing(true);
+    setUrlInput(''); // Clear immediately so user can paste more
 
     for (let i = 0; i < queue.length; i++) {
       setAnalysisQueue(prev => prev.map((item, idx) =>
@@ -874,12 +875,12 @@ function AddTweetsPanel({
     }
 
     setIsAnalyzing(false);
-    setUrlInput('');
   };
 
   const urlCount = parseUrls(urlInput).length;
   const completedCount = analysisQueue.filter(q => q.status === 'done').length;
   const errorCount = analysisQueue.filter(q => q.status === 'error').length;
+  const inProgressCount = analysisQueue.filter(q => q.status === 'analyzing' || q.status === 'pending').length;
 
   return (
     <div className={`h-full bg-[#FAFAFA] border-l border-[#EEE] flex flex-col transition-all duration-300 ${isOpen ? 'w-80' : 'w-14'}`}>
@@ -895,16 +896,15 @@ function AddTweetsPanel({
       {/* Panel Content */}
       {isOpen && (
         <div className="flex-1 p-4 overflow-y-auto">
-          {/* URL Input */}
+          {/* URL Input - Always enabled */}
           <textarea
             value={urlInput}
             onChange={(e) => setUrlInput(e.target.value)}
             placeholder="Paste tweet URLs here...
 
 One per line"
-            rows={8}
-            disabled={isAnalyzing}
-            className="w-full px-3 py-3 bg-white border border-[#E5E5E5] rounded-xl text-sm focus:outline-none focus:border-[#C41E3A] resize-none font-mono placeholder:text-[#BBB] disabled:opacity-50"
+            rows={6}
+            className="w-full px-3 py-3 bg-white border border-[#E5E5E5] rounded-xl text-sm focus:outline-none focus:border-[#C41E3A] resize-none font-mono placeholder:text-[#BBB]"
           />
 
           {urlCount > 0 && (
@@ -916,44 +916,42 @@ One per line"
           {/* Analyze Button */}
           <button
             onClick={handleAnalyzeAll}
-            disabled={isAnalyzing || urlCount === 0}
-            className="w-full mt-4 py-2.5 bg-[#C41E3A] text-white rounded-xl text-sm font-medium hover:bg-[#A31830] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            disabled={urlCount === 0}
+            className="w-full mt-3 py-2.5 bg-[#C41E3A] text-white rounded-xl text-sm font-medium hover:bg-[#A31830] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            {isAnalyzing ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                {completedCount + errorCount + 1}/{analysisQueue.length}
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4" />
-                Analyze
-              </>
-            )}
+            <Sparkles className="w-4 h-4" />
+            {urlCount > 1 ? `Analyze ${urlCount}` : 'Analyze'}
           </button>
 
           {/* Progress Queue */}
           {analysisQueue.length > 0 && (
-            <div className="mt-4 space-y-1.5">
-              {analysisQueue.map((item, idx) => (
-                <div
-                  key={idx}
-                  className={`flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg ${
-                    item.status === 'done' ? 'bg-green-100 text-green-700' :
-                    item.status === 'error' ? 'bg-red-100 text-red-700' :
-                    item.status === 'analyzing' ? 'bg-blue-100 text-blue-700' :
-                    'bg-white text-[#999]'
-                  }`}
-                >
-                  {item.status === 'analyzing' && <Loader2 className="w-3 h-3 animate-spin flex-shrink-0" />}
-                  {item.status === 'done' && <CheckCircle2 className="w-3 h-3 flex-shrink-0" />}
-                  {item.status === 'error' && <AlertCircle className="w-3 h-3 flex-shrink-0" />}
-                  {item.status === 'pending' && <div className="w-3 h-3 rounded-full border border-current flex-shrink-0" />}
-                  <span className="truncate font-mono">
-                    {item.url.replace(/https?:\/\/(twitter|x)\.com\//, '@').split('/status')[0]}
-                  </span>
-                </div>
-              ))}
+            <div className="mt-4">
+              {inProgressCount > 0 && (
+                <p className="text-xs text-[#666] mb-2">
+                  Processing {completedCount + errorCount + 1}/{analysisQueue.length}...
+                </p>
+              )}
+              <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                {analysisQueue.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className={`flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg ${
+                      item.status === 'done' ? 'bg-green-100 text-green-700' :
+                      item.status === 'error' ? 'bg-red-100 text-red-700' :
+                      item.status === 'analyzing' ? 'bg-blue-100 text-blue-700' :
+                      'bg-white text-[#999]'
+                    }`}
+                  >
+                    {item.status === 'analyzing' && <Loader2 className="w-3 h-3 animate-spin flex-shrink-0" />}
+                    {item.status === 'done' && <CheckCircle2 className="w-3 h-3 flex-shrink-0" />}
+                    {item.status === 'error' && <AlertCircle className="w-3 h-3 flex-shrink-0" />}
+                    {item.status === 'pending' && <div className="w-3 h-3 rounded-full border border-current flex-shrink-0" />}
+                    <span className="truncate font-mono">
+                      {item.url.replace(/https?:\/\/(twitter|x)\.com\//, '@').split('/status')[0]}
+                    </span>
+                  </div>
+                ))}
+              </div>
               {!isAnalyzing && (
                 <button
                   onClick={() => setAnalysisQueue([])}
