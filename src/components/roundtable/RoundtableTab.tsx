@@ -366,6 +366,36 @@ function AISlide({ analysis, aiType }: { analysis: AIAnalysis; aiType: 'grok' | 
         </div>
       </div>
 
+      {/* Additional Psychological Triggers - Show active ones */}
+      {analysis.additionalTriggers && (
+        <div className="bg-[#F8F8F8] rounded-xl p-4">
+          <h4 className="text-sm font-semibold text-[#1A1A1A] mb-3">Also Present</h4>
+          <div className="flex flex-wrap gap-2">
+            {analysis.additionalTriggers.socialProof && (
+              <span className="px-3 py-1.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">Social Proof</span>
+            )}
+            {analysis.additionalTriggers.lossAversion && (
+              <span className="px-3 py-1.5 bg-orange-100 text-orange-700 text-xs font-medium rounded-full">Loss Aversion</span>
+            )}
+            {analysis.additionalTriggers.identitySignaling && (
+              <span className="px-3 py-1.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">Identity Signaling</span>
+            )}
+            {analysis.additionalTriggers.permissionGiving && (
+              <span className="px-3 py-1.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">Permission Giving</span>
+            )}
+            {analysis.additionalTriggers.patternCompletion && (
+              <span className="px-3 py-1.5 bg-pink-100 text-pink-700 text-xs font-medium rounded-full">Pattern Completion</span>
+            )}
+            {analysis.additionalTriggers.vulnerabilityFactor === 'high' && (
+              <span className="px-3 py-1.5 bg-red-100 text-red-700 text-xs font-medium rounded-full">High Vulnerability</span>
+            )}
+            {analysis.additionalTriggers.specificityLevel === 'high' && (
+              <span className="px-3 py-1.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">High Specificity</span>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* The Key Insight - Pink Box (Pulse Style) */}
       <div className="bg-gradient-to-r from-[#FFF0F3] to-[#FFF5F7] border-l-4 border-[#C41E3A] rounded-r-xl p-4">
         <h4 className="flex items-center gap-2 text-sm font-semibold text-[#C41E3A] mb-2">
