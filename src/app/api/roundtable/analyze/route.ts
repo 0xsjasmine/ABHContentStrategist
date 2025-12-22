@@ -125,34 +125,49 @@ async function analyzeWithClaude(tweet: string, author: string): Promise<{ analy
 
   const client = new Anthropic({ apiKey });
 
-  const response = await client.messages.create({
-    model: 'claude-sonnet-4-5-20250514',
-    max_tokens: 2000,
-    messages: [
-      {
-        role: 'user',
-        content: `${PSYCHOLOGY_PROMPT}\n\nTWEET by @${author}:\n"${tweet}"`,
-      },
-    ],
-  });
+  // Try primary model, fallback to older if needed
+  const models = ['claude-sonnet-4-5-20250514', 'claude-3-5-sonnet-20241022'];
+  let lastError: Error | null = null;
 
-  const content = response.content[0];
-  if (content.type !== 'text') {
-    throw new Error('Unexpected response type');
+  for (const model of models) {
+    try {
+      console.log(`Trying Claude model: ${model}`);
+      const response = await client.messages.create({
+        model,
+        max_tokens: 2000,
+        messages: [
+          {
+            role: 'user',
+            content: `${PSYCHOLOGY_PROMPT}\n\nTWEET by @${author}:\n"${tweet}"`,
+          },
+        ],
+      });
+
+      const content = response.content[0];
+      if (content.type !== 'text') {
+        throw new Error('Unexpected response type');
+      }
+
+      const jsonMatch = content.text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('Could not parse Claude response');
+      }
+
+      console.log(`Claude model ${model} succeeded`);
+      return {
+        analysis: JSON.parse(jsonMatch[0]),
+        usage: {
+          inputTokens: response.usage?.input_tokens || 0,
+          outputTokens: response.usage?.output_tokens || 0,
+        },
+      };
+    } catch (error) {
+      console.error(`Claude model ${model} failed:`, error);
+      lastError = error instanceof Error ? error : new Error(String(error));
+    }
   }
 
-  const jsonMatch = content.text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new Error('Could not parse Claude response');
-  }
-
-  return {
-    analysis: JSON.parse(jsonMatch[0]),
-    usage: {
-      inputTokens: response.usage?.input_tokens || 0,
-      outputTokens: response.usage?.output_tokens || 0,
-    },
-  };
+  throw lastError || new Error('All Claude models failed');
 }
 
 async function analyzeWithGrok(tweet: string, author: string): Promise<{ analysis: unknown; usage: { inputTokens: number; outputTokens: number } }> {
