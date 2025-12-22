@@ -221,172 +221,216 @@ function SwipeModal({
   );
 }
 
-// AI Analysis Slide (Grok or Claude)
+// AI Analysis Slide (Grok or Claude) - Pulse Style
 function AISlide({ analysis, isGrok }: { analysis: AIAnalysis; isGrok: boolean }) {
   const Icon = isGrok ? Radio : Sparkles;
   const name = isGrok ? "Grok" : "Claude";
-  const color = isGrok ? 'text-blue-600 bg-blue-50 border-blue-200' : 'text-[#C41E3A] bg-red-50 border-red-200';
+  const subtitle = isGrok ? 'Real-time cultural context' : 'Deep psychological structure';
+
+  // Calculate average score
+  const avgScore = Math.round((analysis.curiosityGap.score + analysis.predictionViolation.score + analysis.habituationBypass.score) / 3);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className={`w-12 h-12 rounded-xl flex items-center justify-center border ${color}`}>
-          <Icon className="w-6 h-6" />
+    <div className="space-y-5">
+      {/* Header - Pulse Style */}
+      <div className="flex items-start gap-4">
+        <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${isGrok ? 'bg-blue-100' : 'bg-red-100'}`}>
+          <Icon className={`w-7 h-7 ${isGrok ? 'text-blue-600' : 'text-[#C41E3A]'}`} />
         </div>
-        <div>
-          <h3 className="text-lg font-semibold text-[#1A1A1A]">{name}&apos;s Analysis</h3>
-          <p className="text-sm text-[#666]">{isGrok ? 'Real-time cultural context' : 'Deep psychological structure'}</p>
+        <div className="flex-1">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-[#1A1A1A]">{name}&apos;s Take</h3>
+            <div className="bg-[#C41E3A] text-white px-3 py-1.5 rounded-lg text-sm font-bold">
+              {avgScore}/10
+            </div>
+          </div>
+          <p className="text-sm text-[#C41E3A] font-medium">{subtitle}</p>
         </div>
       </div>
 
-      {/* Scores */}
-      <div className="space-y-4">
-        <div className="bg-[#FAFAFA] rounded-xl p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="font-medium text-[#1A1A1A]">Curiosity Gap</span>
-            <ScoreBadge score={analysis.curiosityGap.score} />
+      {/* Key Scores - Bullet Style */}
+      <div>
+        <h4 className="flex items-center gap-2 text-sm font-semibold text-[#1A1A1A] mb-3">
+          <span className="text-[#C41E3A]">⚡</span> Quick Scores
+        </h4>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between py-2 border-b border-[#EEE]">
+            <span className="text-sm text-[#666]">Curiosity Gap</span>
+            <span className="font-semibold text-[#1A1A1A]">{analysis.curiosityGap.score}/10</span>
           </div>
-          <p className="text-sm text-[#666]">{analysis.curiosityGap.analysis}</p>
-        </div>
-
-        <div className="bg-[#FAFAFA] rounded-xl p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="font-medium text-[#1A1A1A]">Prediction Violation</span>
-            <ScoreBadge score={analysis.predictionViolation.score} />
+          <div className="flex items-center justify-between py-2 border-b border-[#EEE]">
+            <span className="text-sm text-[#666]">Prediction Violation</span>
+            <span className="font-semibold text-[#1A1A1A]">{analysis.predictionViolation.score}/10</span>
           </div>
-          <p className="text-sm text-[#666]">{analysis.predictionViolation.analysis}</p>
-        </div>
-
-        <div className="bg-[#FAFAFA] rounded-xl p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="font-medium text-[#1A1A1A]">Habituation Bypass</span>
-            <ScoreBadge score={analysis.habituationBypass.score} />
+          <div className="flex items-center justify-between py-2">
+            <span className="text-sm text-[#666]">Habituation Bypass</span>
+            <span className="font-semibold text-[#1A1A1A]">{analysis.habituationBypass.score}/10</span>
           </div>
-          <p className="text-sm text-[#666]">{analysis.habituationBypass.analysis}</p>
         </div>
       </div>
 
-      {/* Key Insight */}
-      <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-xl p-4">
-        <div className="flex items-start gap-3">
-          <Lightbulb className="w-5 h-5 text-yellow-600 mt-0.5" />
-          <div>
-            <h4 className="font-medium text-[#1A1A1A] mb-1">{name}&apos;s Key Insight</h4>
-            <p className="text-sm text-[#666]">{analysis.keyInsight}</p>
-          </div>
-        </div>
+      {/* Key Takeaways - Bullet List */}
+      <div>
+        <h4 className="flex items-center gap-2 text-sm font-semibold text-[#1A1A1A] mb-3">
+          <span className="text-[#C41E3A]">✨</span> Key Observations
+        </h4>
+        <ul className="space-y-2">
+          {analysis.curiosityGap.score >= 7 && (
+            <li className="flex items-start gap-2 text-sm text-[#666]">
+              <span className="text-[#C41E3A] font-bold">•</span>
+              Strong curiosity gap hooks the reader immediately
+            </li>
+          )}
+          {analysis.predictionViolation.score >= 7 && (
+            <li className="flex items-start gap-2 text-sm text-[#666]">
+              <span className="text-[#C41E3A] font-bold">•</span>
+              Subverts expectations in a memorable way
+            </li>
+          )}
+          {analysis.habituationBypass.score >= 7 && (
+            <li className="flex items-start gap-2 text-sm text-[#666]">
+              <span className="text-[#C41E3A] font-bold">•</span>
+              Breaks through feed noise with unique framing
+            </li>
+          )}
+          <li className="flex items-start gap-2 text-sm text-[#666]">
+            <span className="text-[#C41E3A] font-bold">•</span>
+            {analysis.curiosityGap.analysis?.split('.')[0] || 'Effective psychological hooks'}
+          </li>
+        </ul>
+      </div>
+
+      {/* The Key Insight - Pink Box (Pulse Style) */}
+      <div className="bg-gradient-to-r from-[#FFF0F3] to-[#FFF5F7] border-l-4 border-[#C41E3A] rounded-r-xl p-4">
+        <h4 className="flex items-center gap-2 text-sm font-semibold text-[#C41E3A] mb-2">
+          <Lightbulb className="w-4 h-4" /> The Key Insight
+        </h4>
+        <p className="text-sm text-[#666] italic">&quot;{analysis.keyInsight}&quot;</p>
       </div>
     </div>
   );
 }
 
-// Compare Slide
+// Compare Slide - Simplified Pulse Style
 function CompareSlide({ analysis }: { analysis: TweetAnalysis }) {
   return (
-    <div className="space-y-6">
-      {/* Where They Agree */}
-      <div className="bg-green-50 border border-green-200 rounded-xl p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <CheckCircle2 className="w-5 h-5 text-green-600" />
-          <h3 className="font-semibold text-green-900">Where They Agree</h3>
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex items-start gap-4">
+        <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-purple-100">
+          <Scale className="w-7 h-7 text-purple-600" />
         </div>
-        <ul className="space-y-3">
+        <div>
+          <h3 className="text-lg font-semibold text-[#1A1A1A]">The Verdict</h3>
+          <p className="text-sm text-[#C41E3A] font-medium">Where Grok & Claude align and diverge</p>
+        </div>
+      </div>
+
+      {/* Where They Agree - Bullet List */}
+      <div>
+        <h4 className="flex items-center gap-2 text-sm font-semibold text-[#1A1A1A] mb-3">
+          <CheckCircle2 className="w-4 h-4 text-green-600" /> Both Agree
+        </h4>
+        <ul className="space-y-2">
           {analysis.agreements.points.map((point, i) => (
-            <li key={i} className="flex items-start gap-3">
-              <span className="flex-shrink-0 w-6 h-6 bg-green-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
-                {i + 1}
-              </span>
-              <span className="text-sm text-green-800">{point}</span>
+            <li key={i} className="flex items-start gap-2 text-sm text-[#666]">
+              <span className="text-green-600 font-bold">✓</span>
+              {point}
             </li>
           ))}
         </ul>
       </div>
 
-      {/* Where They Differ */}
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <Scale className="w-5 h-5 text-blue-600" />
-          <h3 className="font-semibold text-blue-900">Where They Differ</h3>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-white rounded-lg p-4 border border-blue-100">
+      {/* Where They Differ - Simple Cards */}
+      <div>
+        <h4 className="flex items-center gap-2 text-sm font-semibold text-[#1A1A1A] mb-3">
+          <ArrowRight className="w-4 h-4 text-blue-600" /> Different Perspectives
+        </h4>
+        <div className="space-y-3">
+          <div className="bg-blue-50 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <Radio className="w-4 h-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-900">Grok&apos;s Focus</span>
+              <span className="text-sm font-medium text-[#1A1A1A]">Grok says...</span>
             </div>
-            <p className="text-sm text-blue-800">{analysis.differences.grokFocus}</p>
+            <p className="text-sm text-[#666] italic">&quot;{analysis.differences.grokFocus}&quot;</p>
           </div>
-          <div className="bg-white rounded-lg p-4 border border-blue-100">
+          <div className="bg-red-50 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <Sparkles className="w-4 h-4 text-[#C41E3A]" />
-              <span className="text-sm font-medium text-blue-900">Claude&apos;s Focus</span>
+              <span className="text-sm font-medium text-[#1A1A1A]">Claude says...</span>
             </div>
-            <p className="text-sm text-blue-800">{analysis.differences.claudeFocus}</p>
+            <p className="text-sm text-[#666] italic">&quot;{analysis.differences.claudeFocus}&quot;</p>
           </div>
         </div>
       </div>
 
-      {/* Score Comparison */}
-      <div className="bg-[#FAFAFA] rounded-xl p-5">
-        <h3 className="font-semibold text-[#1A1A1A] mb-4">Score Comparison</h3>
-        <div className="space-y-3">
-          {['curiosityGap', 'predictionViolation', 'habituationBypass'].map((metric) => {
-            const grokScore = analysis.grokAnalysis[metric as keyof AIAnalysis] as { score: number };
-            const claudeScore = analysis.claudeAnalysis[metric as keyof AIAnalysis] as { score: number };
-            const label = metric === 'curiosityGap' ? 'Curiosity Gap' :
-                         metric === 'predictionViolation' ? 'Prediction Violation' : 'Habituation Bypass';
-            return (
-              <div key={metric} className="flex items-center justify-between">
-                <span className="text-sm text-[#666]">{label}</span>
-                <div className="flex items-center gap-4">
-                  <span className="text-sm"><Radio className="w-3 h-3 inline mr-1 text-blue-600" />{grokScore.score}</span>
-                  <span className="text-sm"><Sparkles className="w-3 h-3 inline mr-1 text-[#C41E3A]" />{claudeScore.score}</span>
-                </div>
-              </div>
-            );
-          })}
+      {/* Score Comparison - Simple Table */}
+      <div className="bg-[#FAFAFA] rounded-xl p-4">
+        <h4 className="text-sm font-semibold text-[#1A1A1A] mb-3">Score Breakdown</h4>
+        <div className="grid grid-cols-4 gap-2 text-center text-xs">
+          <div></div>
+          <div className="font-medium text-[#666]">Gap</div>
+          <div className="font-medium text-[#666]">Violation</div>
+          <div className="font-medium text-[#666]">Bypass</div>
+
+          <div className="text-left flex items-center gap-1">
+            <Radio className="w-3 h-3 text-blue-600" /> Grok
+          </div>
+          <div className="font-semibold">{analysis.grokAnalysis.curiosityGap.score}</div>
+          <div className="font-semibold">{analysis.grokAnalysis.predictionViolation.score}</div>
+          <div className="font-semibold">{analysis.grokAnalysis.habituationBypass.score}</div>
+
+          <div className="text-left flex items-center gap-1">
+            <Sparkles className="w-3 h-3 text-[#C41E3A]" /> Claude
+          </div>
+          <div className="font-semibold">{analysis.claudeAnalysis.curiosityGap.score}</div>
+          <div className="font-semibold">{analysis.claudeAnalysis.predictionViolation.score}</div>
+          <div className="font-semibold">{analysis.claudeAnalysis.habituationBypass.score}</div>
         </div>
       </div>
     </div>
   );
 }
 
-// Use This Slide
+// Use This Slide - Simplified Pulse Style
 function UseSlide({ analysis }: { analysis: TweetAnalysis }) {
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3 mb-2">
-        <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-[#C41E3A]/10 border border-[#C41E3A]/20">
-          <Wand2 className="w-6 h-6 text-[#C41E3A]" />
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex items-start gap-4">
+        <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-gradient-to-br from-[#C41E3A] to-[#A31830]">
+          <Wand2 className="w-7 h-7 text-white" />
         </div>
         <div>
-          <h3 className="text-lg font-semibold text-[#1A1A1A]">How You Can Use This</h3>
-          <p className="text-sm text-[#666]">Actionable takeaways for your content</p>
+          <h3 className="text-lg font-semibold text-[#1A1A1A]">Steal This</h3>
+          <p className="text-sm text-[#C41E3A] font-medium">Actionable tactics for your content</p>
         </div>
       </div>
 
+      {/* Takeaways - Numbered List */}
       <div className="space-y-4">
         {analysis.takeaways.map((takeaway, i) => (
-          <div key={i} className="bg-gradient-to-r from-[#FFF5F5] to-white border border-[#C41E3A]/20 rounded-xl p-5">
-            <div className="flex items-start gap-4">
-              <span className="flex-shrink-0 w-8 h-8 bg-[#C41E3A] text-white rounded-full flex items-center justify-center text-sm font-bold">
-                {i + 1}
-              </span>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-medium text-[#C41E3A] uppercase tracking-wide">{takeaway.category}</span>
-                </div>
-                <h4 className="font-semibold text-[#1A1A1A] mb-1">{takeaway.title}</h4>
-                <p className="text-sm text-[#666] mb-3">{takeaway.description}</p>
-                <div className="bg-white rounded-lg p-3 border border-[#EEE]">
-                  <p className="text-sm text-[#C41E3A] italic">&quot;{takeaway.example}&quot;</p>
-                </div>
-              </div>
+          <div key={i} className="flex items-start gap-3">
+            <span className="flex-shrink-0 w-7 h-7 bg-[#C41E3A] text-white rounded-full flex items-center justify-center text-sm font-bold">
+              {i + 1}
+            </span>
+            <div className="flex-1 pt-0.5">
+              <h4 className="font-semibold text-[#1A1A1A] text-sm">{takeaway.title}</h4>
+              <p className="text-sm text-[#666] mt-1">{takeaway.description}</p>
             </div>
           </div>
         ))}
       </div>
+
+      {/* Pro Tip Box */}
+      {analysis.takeaways[0] && (
+        <div className="bg-gradient-to-r from-[#FFF0F3] to-[#FFF5F7] border-l-4 border-[#C41E3A] rounded-r-xl p-4">
+          <h4 className="flex items-center gap-2 text-sm font-semibold text-[#C41E3A] mb-2">
+            💡 Try This
+          </h4>
+          <p className="text-sm text-[#666] italic">&quot;{analysis.takeaways[0].example}&quot;</p>
+        </div>
+      )}
     </div>
   );
 }
