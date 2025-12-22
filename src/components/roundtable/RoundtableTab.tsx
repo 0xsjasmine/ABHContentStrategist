@@ -250,10 +250,10 @@ function AISlide({ analysis, isGrok }: { analysis: AIAnalysis; isGrok: boolean }
 
   return (
     <div className="space-y-5">
-      {/* Header - Pulse Style */}
+      {/* Header - Consistent Red Theme */}
       <div className="flex items-start gap-4">
-        <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${isGrok ? 'bg-blue-100' : 'bg-red-100'}`}>
-          <Icon className={`w-7 h-7 ${isGrok ? 'text-blue-600' : 'text-[#C41E3A]'}`} />
+        <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-red-100">
+          <Icon className="w-7 h-7 text-[#C41E3A]" />
         </div>
         <div className="flex-1">
           <div className="flex items-center justify-between">
@@ -266,56 +266,34 @@ function AISlide({ analysis, isGrok }: { analysis: AIAnalysis; isGrok: boolean }
         </div>
       </div>
 
-      {/* Key Scores - Bullet Style */}
-      <div>
-        <h4 className="flex items-center gap-2 text-sm font-semibold text-[#1A1A1A] mb-3">
-          <span className="text-[#C41E3A]">⚡</span> Quick Scores
-        </h4>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between py-2 border-b border-[#EEE]">
-            <span className="text-sm text-[#666]">Curiosity Gap</span>
-            <span className="font-semibold text-[#1A1A1A]">{analysis.curiosityGap.score}/10</span>
+      {/* Analysis Breakdown - With Explanations */}
+      <div className="space-y-4">
+        {/* Curiosity Gap */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-sm font-medium text-[#1A1A1A]">Curiosity Gap</span>
+            <span className="text-sm font-semibold text-[#C41E3A]">{analysis.curiosityGap.score}/10</span>
           </div>
-          <div className="flex items-center justify-between py-2 border-b border-[#EEE]">
-            <span className="text-sm text-[#666]">Prediction Violation</span>
-            <span className="font-semibold text-[#1A1A1A]">{analysis.predictionViolation.score}/10</span>
-          </div>
-          <div className="flex items-center justify-between py-2">
-            <span className="text-sm text-[#666]">Habituation Bypass</span>
-            <span className="font-semibold text-[#1A1A1A]">{analysis.habituationBypass.score}/10</span>
-          </div>
+          <p className="text-sm text-[#666]">{analysis.curiosityGap.analysis}</p>
         </div>
-      </div>
 
-      {/* Key Takeaways - Bullet List */}
-      <div>
-        <h4 className="flex items-center gap-2 text-sm font-semibold text-[#1A1A1A] mb-3">
-          <span className="text-[#C41E3A]">✨</span> Key Observations
-        </h4>
-        <ul className="space-y-2">
-          {analysis.curiosityGap.score >= 7 && (
-            <li className="flex items-start gap-2 text-sm text-[#666]">
-              <span className="text-[#C41E3A] font-bold">•</span>
-              Strong curiosity gap hooks the reader immediately
-            </li>
-          )}
-          {analysis.predictionViolation.score >= 7 && (
-            <li className="flex items-start gap-2 text-sm text-[#666]">
-              <span className="text-[#C41E3A] font-bold">•</span>
-              Subverts expectations in a memorable way
-            </li>
-          )}
-          {analysis.habituationBypass.score >= 7 && (
-            <li className="flex items-start gap-2 text-sm text-[#666]">
-              <span className="text-[#C41E3A] font-bold">•</span>
-              Breaks through feed noise with unique framing
-            </li>
-          )}
-          <li className="flex items-start gap-2 text-sm text-[#666]">
-            <span className="text-[#C41E3A] font-bold">•</span>
-            {analysis.curiosityGap.analysis?.split('.')[0] || 'Effective psychological hooks'}
-          </li>
-        </ul>
+        {/* Prediction Violation */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-sm font-medium text-[#1A1A1A]">Prediction Violation</span>
+            <span className="text-sm font-semibold text-[#C41E3A]">{analysis.predictionViolation.score}/10</span>
+          </div>
+          <p className="text-sm text-[#666]">{analysis.predictionViolation.analysis}</p>
+        </div>
+
+        {/* Habituation Bypass */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-sm font-medium text-[#1A1A1A]">Habituation Bypass</span>
+            <span className="text-sm font-semibold text-[#C41E3A]">{analysis.habituationBypass.score}/10</span>
+          </div>
+          <p className="text-sm text-[#666]">{analysis.habituationBypass.analysis}</p>
+        </div>
       </div>
 
       {/* The Key Insight - Pink Box (Pulse Style) */}
