@@ -235,7 +235,7 @@ export default function WatchlistManager({
               className="px-6 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
             >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm" style={{ backgroundColor: 'var(--burgundy)' }}>
+                <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm" style={{ backgroundColor: 'var(--red)' }}>
                   {account.handle.charAt(0).toUpperCase()}
                 </div>
                 <div>

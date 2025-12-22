@@ -158,7 +158,7 @@ export default function InsightCard({
               {headline}
             </h3>
             {subtitle && (
-              <p className="text-sm mt-1" style={{ color: 'var(--burgundy)' }}>
+              <p className="text-sm mt-1" style={{ color: 'var(--red)' }}>
                 {subtitle}
               </p>
             )}
@@ -223,7 +223,7 @@ export default function InsightCard({
         {/* Key Insight */}
         {keyInsight && (
           <div className="mt-4">
-            <div className="flex items-center gap-2 text-sm font-semibold mb-2" style={{ color: 'var(--burgundy)' }}>
+            <div className="flex items-center gap-2 text-sm font-semibold mb-2" style={{ color: 'var(--red)' }}>
               <SparklesIcon />
               The Key Insight
             </div>
@@ -309,7 +309,7 @@ export default function InsightCard({
                 <button
                   onClick={() => setIsExpanded(!isExpanded)}
                   className="text-sm font-medium w-full py-2 rounded-lg hover:bg-gray-50"
-                  style={{ color: 'var(--burgundy)' }}
+                  style={{ color: 'var(--red)' }}
                 >
                   {isExpanded ? 'Show less' : `Show ${keyPosts.length - 2} more`}
                 </button>

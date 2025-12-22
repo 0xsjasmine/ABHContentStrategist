@@ -106,7 +106,7 @@ export default function ManifestationCard({
           className="h-40 flex items-center justify-center"
           style={{ backgroundColor: 'var(--soft-pink)' }}
         >
-          <div className="w-16 h-16 rounded-full bg-white/50 flex items-center justify-center" style={{ color: 'var(--burgundy)' }}>
+          <div className="w-16 h-16 rounded-full bg-white/50 flex items-center justify-center" style={{ color: 'var(--red)' }}>
             {typeIcons[manifestation.type]}
           </div>
         </div>

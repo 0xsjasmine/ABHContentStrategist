@@ -171,7 +171,7 @@ export default function StudioTab() {
         <div className="max-w-2xl mx-auto pt-12">
           <div className="text-center mb-8">
             <h2 className="text-3xl font-semibold text-gray-900 mb-2">
-              What do you want to <span style={{ color: 'var(--burgundy)' }}>tweet</span>?
+              What do you want to <span style={{ color: 'var(--red)' }}>tweet</span>?
             </h2>
             <p className="text-gray-500">Describe your idea and we'll craft it in your voice</p>
           </div>
