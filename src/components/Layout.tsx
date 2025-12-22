@@ -45,7 +45,7 @@ export default function Layout({ children, activeTab, onTabChange }: LayoutProps
   }, []);
 
   return (
-    <div className="min-h-screen flex bg-[#FFF6D9]">
+    <div className="min-h-screen flex bg-white">
       {/* Side Navigation - Always Expanded (Text Only) */}
       <nav className="sidebar fixed left-0 top-0 h-full z-40 flex flex-col py-6 w-32">
         {/* Logo / Brand */}
@@ -96,7 +96,7 @@ export default function Layout({ children, activeTab, onTabChange }: LayoutProps
       </nav>
 
       {/* Main Content */}
-      <main className="flex-1 ml-32 min-h-screen bg-[#FFF6D9]">
+      <main className="flex-1 ml-32 min-h-screen bg-white">
         <div className="max-w-6xl mx-auto px-8 py-10">
           {children}
         </div>
