@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Plus,
   Link2,
@@ -597,7 +597,7 @@ function UseSlide({ analysis }: { analysis: TweetAnalysis }) {
   );
 }
 
-// Tweet Card - Custom Display (no Twitter widget truncation)
+// Tweet Card - Twitter Embed with Delete
 function TweetCard({
   analysis,
   onClick,
@@ -607,7 +607,7 @@ function TweetCard({
   onClick: () => void;
   onDelete: () => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const embedRef = useRef<HTMLDivElement>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Get first takeaway as the tag
@@ -620,9 +620,6 @@ function TweetCard({
      analysis.claudeAnalysis.predictionViolation.score) / 4
   );
 
-  const tweetText = analysis.tweet.text || '';
-  const isLongTweet = tweetText.length > 280;
-
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (showDeleteConfirm) {
@@ -634,10 +631,26 @@ function TweetCard({
     }
   };
 
-  const handleExpand = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setExpanded(!expanded);
-  };
+  // Load Twitter widget for embed
+  useEffect(() => {
+    if (analysis.tweet.embedHtml && embedRef.current) {
+      const twttr = (window as unknown as { twttr?: { widgets?: { load?: (el: HTMLElement) => void } } }).twttr;
+      if (twttr?.widgets?.load) {
+        twttr.widgets.load(embedRef.current);
+      } else {
+        const script = document.createElement('script');
+        script.src = 'https://platform.twitter.com/widgets.js';
+        script.async = true;
+        script.onload = () => {
+          const newTwttr = (window as unknown as { twttr?: { widgets?: { load?: (el: HTMLElement) => void } } }).twttr;
+          if (newTwttr?.widgets?.load && embedRef.current) {
+            newTwttr.widgets.load(embedRef.current);
+          }
+        };
+        document.body.appendChild(script);
+      }
+    }
+  }, [analysis.tweet.embedHtml]);
 
   return (
     <div
@@ -647,10 +660,10 @@ function TweetCard({
       {/* Delete Button */}
       <button
         onClick={handleDelete}
-        className={`absolute top-3 right-3 p-2 rounded-lg transition-all z-10 ${
+        className={`absolute top-3 right-3 p-2 rounded-lg transition-all z-20 ${
           showDeleteConfirm
             ? 'bg-red-500 text-white'
-            : 'bg-white/80 text-[#999] opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-red-500'
+            : 'bg-white/90 text-[#999] opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-red-500 shadow-sm'
         }`}
         title={showDeleteConfirm ? 'Click again to confirm' : 'Delete'}
       >
@@ -658,8 +671,8 @@ function TweetCard({
       </button>
 
       {/* Tag & Score */}
-      <div className="px-4 pt-4 pb-3">
-        <div className="flex items-start justify-between gap-2 pr-8">
+      <div className="px-4 pt-4 pb-2">
+        <div className="flex items-start justify-between gap-2 pr-10">
           <span className="px-3 py-1.5 bg-[#C41E3A] text-white text-xs font-medium rounded-full line-clamp-1">
             {takeawayTag}
           </span>
@@ -669,70 +682,30 @@ function TweetCard({
         </div>
       </div>
 
-      {/* Custom Tweet Display */}
-      <div className="px-4 pb-4">
-        {/* Author */}
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#C41E3A] to-[#A31830] flex items-center justify-center text-white font-bold text-sm">
-            {analysis.tweet.author?.charAt(0)?.toUpperCase() || 'X'}
+      {/* Twitter Embed */}
+      {analysis.tweet.embedHtml ? (
+        <div
+          ref={embedRef}
+          className="px-2 pb-2 [&_blockquote]:!m-0 [&_blockquote]:!border-0 [&_.twitter-tweet]:!m-0 [&_iframe]:!max-w-full"
+          dangerouslySetInnerHTML={{ __html: analysis.tweet.embedHtml }}
+          onClick={(e) => e.stopPropagation()}
+        />
+      ) : (
+        <div className="px-4 pb-4">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#C41E3A] to-[#A31830] flex items-center justify-center text-white font-bold text-sm">
+              {analysis.tweet.author?.charAt(0)?.toUpperCase() || 'X'}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-[#1A1A1A] text-sm truncate">{analysis.tweet.author}</p>
+              <p className="text-xs text-[#999]">@{analysis.tweet.handle}</p>
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-[#1A1A1A] text-sm truncate">{analysis.tweet.author}</p>
-            <p className="text-xs text-[#999]">@{analysis.tweet.handle}</p>
-          </div>
+          <p className="text-[#1A1A1A] text-sm leading-relaxed line-clamp-4">
+            {analysis.tweet.text}
+          </p>
         </div>
-
-        {/* Tweet Text - Full or Expandable */}
-        <div className="text-[#1A1A1A] text-sm leading-relaxed whitespace-pre-wrap">
-          {isLongTweet && !expanded ? (
-            <>
-              {tweetText.slice(0, 280)}...
-              <button
-                onClick={handleExpand}
-                className="text-[#C41E3A] font-medium ml-1 hover:underline"
-              >
-                Show more
-              </button>
-            </>
-          ) : (
-            <>
-              {tweetText}
-              {isLongTweet && (
-                <button
-                  onClick={handleExpand}
-                  className="text-[#C41E3A] font-medium ml-1 hover:underline block mt-1"
-                >
-                  Show less
-                </button>
-              )}
-            </>
-          )}
-        </div>
-
-        {/* Footer with date and link */}
-        <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#EEE]">
-          {analysis.tweet.postedAt && (
-            <span className="text-xs text-[#999]">
-              {new Date(analysis.tweet.postedAt).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric'
-              })}
-            </span>
-          )}
-          {analysis.tweet.url && (
-            <a
-              href={analysis.tweet.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="flex items-center gap-1 text-xs text-[#999] hover:text-[#C41E3A] transition-colors"
-            >
-              View on X <ExternalLink className="w-3 h-3" />
-            </a>
-          )}
-        </div>
-      </div>
+      )}
     </div>
   );
 }
