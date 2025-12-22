@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect, type ReactNode } from 'react';
+import { BarChart3 } from 'lucide-react';
 import type { TabId } from '@/types';
+import ApiUsageModal from './ApiUsageModal';
 
 interface LayoutProps {
   children: ReactNode;
@@ -17,51 +19,30 @@ const tabs = [
   { id: 'library' as TabId, label: 'Library' },
 ];
 
-interface ApiUsage {
-  claude: { calls: number; cost: number };
-  grok: { calls: number; cost: number };
-}
-
 export default function Layout({ children, activeTab, onTabChange }: LayoutProps) {
-  const [apiUsage, setApiUsage] = useState<ApiUsage>({
-    claude: { calls: 0, cost: 0 },
-    grok: { calls: 0, cost: 0 },
-  });
+  const [showUsageModal, setShowUsageModal] = useState(false);
+  const [totalCost, setTotalCost] = useState(0);
 
   useEffect(() => {
-    // Load API usage from localStorage
-    const stored = localStorage.getItem('abh_api_usage');
-    if (stored) {
-      try {
-        setApiUsage(JSON.parse(stored));
-      } catch {
-        // Ignore parse errors
-      }
-    }
-
-    // Listen for usage updates
-    const handleStorageChange = () => {
-      const updated = localStorage.getItem('abh_api_usage');
-      if (updated) {
+    // Load current month usage for sidebar display
+    const loadUsage = () => {
+      const now = new Date();
+      const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const stored = localStorage.getItem(`abh_api_usage_${currentMonth}`);
+      if (stored) {
         try {
-          setApiUsage(JSON.parse(updated));
+          const usage = JSON.parse(stored);
+          setTotalCost(usage.claude.cost + usage.grok.cost);
         } catch {
-          // Ignore parse errors
+          setTotalCost(0);
         }
       }
     };
 
-    window.addEventListener('storage', handleStorageChange);
-    // Also poll every 5 seconds for same-tab updates
-    const interval = setInterval(handleStorageChange, 5000);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      clearInterval(interval);
-    };
+    loadUsage();
+    const interval = setInterval(loadUsage, 5000);
+    return () => clearInterval(interval);
   }, []);
-
-  const totalCost = apiUsage.claude.cost + apiUsage.grok.cost;
 
   return (
     <div className="min-h-screen flex bg-white">
@@ -98,24 +79,18 @@ export default function Layout({ children, activeTab, onTabChange }: LayoutProps
           })}
         </div>
 
-        {/* API Usage Tracker */}
-        <div className="px-3 py-3 mx-2 rounded-lg bg-[#FAFAFA] border border-[#EEE]">
-          <p className="text-[10px] font-medium text-[#999] uppercase tracking-wide mb-2">API Usage</p>
-          <div className="space-y-1">
-            <div className="flex justify-between text-xs">
-              <span className="text-[#666]">Claude</span>
-              <span className="text-[#1A1A1A] font-medium">${apiUsage.claude.cost.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-xs">
-              <span className="text-[#666]">Grok</span>
-              <span className="text-[#1A1A1A] font-medium">${apiUsage.grok.cost.toFixed(2)}</span>
-            </div>
-            <div className="pt-1 mt-1 border-t border-[#EEE] flex justify-between text-xs">
-              <span className="text-[#666]">Total</span>
-              <span className="text-[#C41E3A] font-semibold">${totalCost.toFixed(2)}</span>
-            </div>
+        {/* API Usage Button */}
+        <button
+          onClick={() => setShowUsageModal(true)}
+          className="mx-2 px-3 py-3 rounded-lg bg-[#FAFAFA] border border-[#EEE] hover:border-[#DDD] hover:bg-white transition-colors text-left"
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <BarChart3 className="w-3.5 h-3.5 text-[#999]" />
+            <span className="text-[10px] font-medium text-[#999] uppercase tracking-wide">API Costs</span>
           </div>
-        </div>
+          <p className="text-lg font-semibold text-[#C41E3A]">${totalCost.toFixed(2)}</p>
+          <p className="text-[10px] text-[#999]">This month</p>
+        </button>
       </nav>
 
       {/* Main Content */}
@@ -124,6 +99,12 @@ export default function Layout({ children, activeTab, onTabChange }: LayoutProps
           {children}
         </div>
       </main>
+
+      {/* API Usage Modal */}
+      <ApiUsageModal
+        isOpen={showUsageModal}
+        onClose={() => setShowUsageModal(false)}
+      />
     </div>
   );
 }
