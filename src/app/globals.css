@@ -1,33 +1,35 @@
 @import "tailwindcss";
 
 :root {
-  /* ABH Color Palette */
-  --burgundy: #8B1538;
-  --burgundy-dark: #6B1029;
-  --burgundy-light: #A91D45;
-  --gold: #F4C430;
-  --gold-dark: #D4A520;
-  --gold-light: #F7D560;
-  --soft-pink: #FFF0F5;
-  --pink-medium: #FFE4EC;
+  /* ABH Color Palette - Chic & Minimal */
+  --burgundy: #8B2635;
+  --burgundy-dark: #6B1D29;
+  --burgundy-light: #A62F41;
+  --gold: #D4A520;
+  --gold-dark: #B8901A;
+  --gold-light: #E5B833;
 
-  /* Base colors */
+  /* Backgrounds - Pure White */
   --bg-base: #FFFFFF;
   --bg-subtle: #FAFAFA;
   --bg-hover: #F5F5F5;
-  --bg-pink: var(--soft-pink);
+  --bg-card: #FFFFFF;
+  --bg-section: #F8F8F8;
 
-  --text-primary: #000000;
-  --text-secondary: #444444;
-  --text-muted: #888888;
+  /* Text - Black & Gray */
+  --text-primary: #1A1A1A;
+  --text-secondary: #666666;
+  --text-muted: #999999;
   --text-burgundy: var(--burgundy);
 
+  /* Accents */
   --accent-primary: var(--burgundy);
   --accent-secondary: var(--gold);
 
+  /* Borders - Subtle */
   --border-light: #EEEEEE;
-  --border-subtle: #F0F0F0;
-  --border-burgundy: var(--burgundy);
+  --border-subtle: #E5E5E5;
+  --border-medium: #DDDDDD;
 }
 
 @theme inline {
@@ -35,8 +37,8 @@
   --color-foreground: var(--text-primary);
   --color-burgundy: var(--burgundy);
   --color-gold: var(--gold);
-  --color-soft-pink: var(--soft-pink);
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-serif: Georgia, "Times New Roman", serif;
 }
 
 /* Base */
@@ -51,17 +53,18 @@ body {
   min-height: 100vh;
 }
 
-/* ABH Insight Card Styles */
+/* HSR-Style Insight Card */
 .insight-card {
   background: var(--bg-base);
   border-radius: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border-light);
   overflow: hidden;
 }
 
 .insight-card-header {
-  background: var(--soft-pink);
+  background: var(--bg-subtle);
   padding: 1.5rem;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .insight-card-body {
@@ -69,10 +72,23 @@ body {
 }
 
 .insight-card-section {
-  background: var(--soft-pink);
+  background: var(--bg-subtle);
   border-radius: 12px;
   padding: 1rem 1.25rem;
   margin: 1rem 0;
+}
+
+/* Section Title - HSR Style (Caps) */
+.section-title {
+  color: var(--burgundy);
+  font-weight: 600;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .insight-card-section-title {
@@ -142,17 +158,18 @@ body {
 .icon-box {
   width: 48px;
   height: 48px;
-  background: var(--soft-pink);
+  background: var(--bg-subtle);
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--burgundy);
+  border: 1px solid var(--border-light);
 }
 
 /* Key Insight Quote */
 .key-insight {
-  background: var(--soft-pink);
+  background: var(--bg-subtle);
   border-radius: 12px;
   padding: 1.25rem;
   font-style: italic;
@@ -164,8 +181,8 @@ body {
 .takeaway-number {
   width: 24px;
   height: 24px;
-  background: var(--soft-pink);
-  color: var(--burgundy);
+  background: var(--burgundy);
+  color: white;
   border-radius: 6px;
   display: flex;
   align-items: center;
@@ -183,18 +200,19 @@ body {
   background: var(--bg-subtle);
   border-radius: 12px;
   padding: 0.75rem 1rem;
+  border: 1px solid var(--border-light);
 }
 
 .person-avatar {
   width: 40px;
   height: 40px;
-  background: var(--soft-pink);
+  background: var(--burgundy);
   border-radius: 999px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  color: var(--burgundy);
+  color: white;
   font-size: 0.875rem;
 }
 
@@ -356,8 +374,8 @@ body {
 }
 
 .pill-burgundy {
-  background: var(--soft-pink);
-  color: var(--burgundy);
+  background: var(--burgundy);
+  color: white;
 }
 
 /* Input styles */
@@ -466,33 +484,62 @@ input::placeholder, textarea::placeholder {
   border-right: 1px solid var(--border-light);
 }
 
-/* Tab Navigation - ABH Style */
-.tab-nav {
+/* Segmented Tabs - HSR Style (Equal Split) */
+.segmented-tabs {
   display: flex;
-  gap: 0.25rem;
-  padding: 0.25rem;
-  background: var(--bg-subtle);
-  border-radius: 10px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg-base);
 }
 
-.tab-nav-item {
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
+.segmented-tab {
+  flex: 1;
+  padding: 0.75rem 1rem;
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--text-secondary);
-  transition: all 0.2s;
+  text-align: center;
+  border-right: 1px solid var(--border-light);
+  transition: all 0.15s ease;
+  cursor: pointer;
 }
 
-.tab-nav-item:hover {
+.segmented-tab:last-child {
+  border-right: none;
+}
+
+.segmented-tab:hover {
+  background: var(--bg-subtle);
   color: var(--text-primary);
-  background: var(--bg-hover);
 }
 
-.tab-nav-item-active {
-  background: white;
-  color: var(--burgundy);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+.segmented-tab-active {
+  background: var(--text-primary);
+  color: white;
+}
+
+.segmented-tab-active:hover {
+  background: var(--text-primary);
+  color: white;
+}
+
+/* Segmented Tabs with Count Badge */
+.segmented-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 0.5rem;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--bg-subtle);
+  border-radius: 999px;
+}
+
+.segmented-tab-active .segmented-tab-badge {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
 }
 
 /* Urgency indicators */
@@ -510,8 +557,8 @@ input::placeholder, textarea::placeholder {
 
 /* Manifestation status */
 .status-manifesting {
-  background: var(--soft-pink);
-  color: var(--burgundy);
+  background: #F3E8FF;
+  color: #7C3AED;
 }
 
 .status-in-progress {

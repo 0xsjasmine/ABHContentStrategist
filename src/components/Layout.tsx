@@ -104,7 +104,7 @@ export default function Layout({ children, activeTab, onTabChange }: LayoutProps
       </nav>
 
       {/* Main Content */}
-      <main className="flex-1 ml-16 min-h-screen" style={{ backgroundColor: 'var(--soft-pink)' }}>
+      <main className="flex-1 ml-16 min-h-screen bg-white">
         <div className="max-w-6xl mx-auto px-8 py-10">
           {children}
         </div>
