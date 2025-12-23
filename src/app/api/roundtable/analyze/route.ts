@@ -120,11 +120,12 @@ Respond in this exact JSON format:
 async function analyzeWithClaude(tweet: string, author: string): Promise<{ analysis: unknown; usage: { inputTokens: number; outputTokens: number } }> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
 
-  // Debug: Check if API key is loaded (only show first/last few chars for security)
+  // Debug: Check if API key is loaded
+  console.log('[Claude] Checking API key...');
   if (apiKey) {
-    console.log(`[Claude] API key loaded: ${apiKey.slice(0, 10)}...${apiKey.slice(-4)} (length: ${apiKey.length})`);
+    console.log(`[Claude] ✓ API key found: ${apiKey.slice(0, 10)}...${apiKey.slice(-4)} (length: ${apiKey.length})`);
   } else {
-    console.log('[Claude] WARNING: No API key found!');
+    console.log('[Claude] ✗ WARNING: ANTHROPIC_API_KEY not found in environment!');
   }
 
   if (!apiKey) {
@@ -133,9 +134,14 @@ async function analyzeWithClaude(tweet: string, author: string): Promise<{ analy
 
   const client = new Anthropic({ apiKey });
 
-  // Use Claude Sonnet 4.5 - the best coding model
-  // https://www.anthropic.com/news/claude-sonnet-4-5
-  const models = ['claude-sonnet-4-5-20250929'];
+  // Try multiple Claude models - newest first, with fallbacks
+  // Model naming: claude-[version]-[variant]-[date] or claude-[variant]-[version]-[date]
+  const models = [
+    'claude-sonnet-4-5-20250514',      // Claude Sonnet 4.5 (if available)
+    'claude-3-5-sonnet-latest',         // Claude 3.5 Sonnet latest
+    'claude-3-5-sonnet-20241022',       // Claude 3.5 Sonnet specific date
+    'claude-3-sonnet-20240229',         // Claude 3 Sonnet fallback
+  ];
   let lastError: Error | null = null;
 
   for (const model of models) {
@@ -184,10 +190,20 @@ async function analyzeWithClaude(tweet: string, author: string): Promise<{ analy
 
 async function analyzeWithGrok(tweet: string, author: string): Promise<{ analysis: unknown; usage: { inputTokens: number; outputTokens: number } }> {
   const apiKey = process.env.XAI_API_KEY;
+
+  // Debug: Check if API key is loaded
+  console.log('[Grok] Checking API key...');
+  if (apiKey) {
+    console.log(`[Grok] ✓ API key found: ${apiKey.slice(0, 8)}...${apiKey.slice(-4)} (length: ${apiKey.length})`);
+  } else {
+    console.log('[Grok] ✗ WARNING: XAI_API_KEY not found in environment!');
+  }
+
   if (!apiKey) {
     throw new Error('XAI_API_KEY not configured');
   }
 
+  console.log('[Grok] Using model: grok-3-latest');
   const response = await fetch('https://api.x.ai/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -239,10 +255,20 @@ async function analyzeWithGrok(tweet: string, author: string): Promise<{ analysi
 
 async function analyzeWithOpenAI(tweet: string, author: string): Promise<{ analysis: unknown; usage: { inputTokens: number; outputTokens: number } }> {
   const apiKey = process.env.OPENAI_API_KEY;
+
+  // Debug: Check if API key is loaded
+  console.log('[OpenAI] Checking API key...');
+  if (apiKey) {
+    console.log(`[OpenAI] ✓ API key found: ${apiKey.slice(0, 7)}...${apiKey.slice(-4)} (length: ${apiKey.length})`);
+  } else {
+    console.log('[OpenAI] ✗ WARNING: OPENAI_API_KEY not found in environment!');
+  }
+
   if (!apiKey) {
     throw new Error('OPENAI_API_KEY not configured');
   }
 
+  console.log('[OpenAI] Using model: gpt-4o');
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -410,6 +436,14 @@ function generateTakeaways(
 
 export async function POST(request: NextRequest) {
   try {
+    // Log API key status summary at start of each request
+    console.log('\n========== ROUNDTABLE ANALYSIS ==========');
+    console.log('[API Keys Summary]');
+    console.log(`  ANTHROPIC_API_KEY: ${process.env.ANTHROPIC_API_KEY ? '✓ Set' : '✗ Missing'}`);
+    console.log(`  XAI_API_KEY: ${process.env.XAI_API_KEY ? '✓ Set' : '✗ Missing'}`);
+    console.log(`  OPENAI_API_KEY: ${process.env.OPENAI_API_KEY ? '✓ Set' : '✗ Missing'}`);
+    console.log('==========================================\n');
+
     const body = await request.json();
     let { tweet, author, handle, url } = body;
     const { engagement } = body;
