@@ -1,0 +1,268 @@
+'use client';
+
+import { useState } from 'react';
+import type { OutlierTweet } from '@/app/api/pulse/outliers/route';
+
+const BRAND_RED = '#C41E3A';
+
+// Icons
+const TrendingIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+  </svg>
+);
+
+const PenIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+  </svg>
+);
+
+const ExternalLinkIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+  </svg>
+);
+
+const LightbulbIcon = () => (
+  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+    <path d="M9 21c0 .5.4 1 1 1h4c.6 0 1-.5 1-1v-1H9v1zm3-19C8.1 2 5 5.1 5 9c0 2.4 1.2 4.5 3 5.7V17c0 .5.4 1 1 1h6c.6 0 1-.5 1-1v-2.3c1.8-1.3 3-3.4 3-5.7 0-3.9-3.1-7-7-7z"/>
+  </svg>
+);
+
+// Extended type to include handle
+interface OutlierCardProps {
+  outlier: OutlierTweet & { handle: string };
+}
+
+function ScoreBar({ label, score, color, icon }: { label: string; score: number; color: string; icon: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="flex items-center gap-1.5 w-28" style={{ color }}>
+        {icon}
+        <span className="text-xs font-medium">{label}</span>
+      </div>
+      <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div
+          className="h-full rounded-full transition-all"
+          style={{ width: `${score * 10}%`, backgroundColor: color }}
+        />
+      </div>
+      <span className="text-sm font-bold w-8 text-right" style={{ color }}>{score}/10</span>
+    </div>
+  );
+}
+
+function formatNumber(num: number): string {
+  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
+  return num.toString();
+}
+
+export default function OutlierCard({ outlier }: OutlierCardProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const { tweet, analysis, handle } = outlier;
+
+  // Determine if topic or storytelling driven
+  const isDominantlyTopic = analysis.topicScore > analysis.storytellingScore + 2;
+  const isDominantlyStorytelling = analysis.storytellingScore > analysis.topicScore + 2;
+
+  const dominanceLabel = isDominantlyTopic
+    ? 'Topic-Driven'
+    : isDominantlyStorytelling
+    ? 'Craft-Driven'
+    : 'Balanced';
+
+  const dominanceColor = isDominantlyTopic
+    ? '#3B82F6'
+    : isDominantlyStorytelling
+    ? '#10B981'
+    : '#8B5CF6';
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
+      {/* Header */}
+      <div className="p-4 border-b border-gray-100">
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <div
+              className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
+              style={{ backgroundColor: BRAND_RED }}
+            >
+              {handle.replace('@', '').charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <a
+                href={`https://x.com/${handle.replace('@', '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-gray-900 hover:underline"
+              >
+                {handle}
+              </a>
+            </div>
+          </div>
+          <span
+            className="px-2 py-1 rounded-full text-xs font-medium"
+            style={{ backgroundColor: `${dominanceColor}20`, color: dominanceColor }}
+          >
+            {dominanceLabel}
+          </span>
+        </div>
+
+        {/* Tweet Text */}
+        <p className="text-gray-800 text-sm leading-relaxed mb-3">
+          {tweet.text.length > 200 ? `${tweet.text.slice(0, 200)}...` : tweet.text}
+        </p>
+
+        {/* Metrics */}
+        <div className="flex items-center gap-4 text-xs text-gray-500">
+          <span className="flex items-center gap-1">
+            <span>❤️</span> {formatNumber(tweet.metrics.likes)}
+          </span>
+          <span className="flex items-center gap-1">
+            <span>🔁</span> {formatNumber(tweet.metrics.retweets)}
+          </span>
+          {tweet.metrics.views && (
+            <span className="flex items-center gap-1">
+              <span>👁</span> {formatNumber(tweet.metrics.views)}
+            </span>
+          )}
+          {tweet.outperformanceMultiple && (
+            <span
+              className="ml-auto font-semibold"
+              style={{ color: BRAND_RED }}
+            >
+              {tweet.outperformanceMultiple}x avg
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Score Breakdown */}
+      <div className="p-4 bg-gray-50">
+        <h4 className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-3">
+          Why It Worked
+        </h4>
+
+        <div className="space-y-3">
+          <ScoreBar
+            label="Topic/Timing"
+            score={analysis.topicScore}
+            color="#3B82F6"
+            icon={<TrendingIcon />}
+          />
+          <ScoreBar
+            label="Storytelling"
+            score={analysis.storytellingScore}
+            color="#10B981"
+            icon={<PenIcon />}
+          />
+        </div>
+
+        {/* Quick Insight */}
+        <div className="mt-4 p-3 bg-white rounded-lg border border-gray-200">
+          <div className="flex items-start gap-2">
+            <div className="text-amber-500 mt-0.5">
+              <LightbulbIcon />
+            </div>
+            <div>
+              <p className="text-sm text-gray-700 font-medium">{analysis.whatStoodOut}</p>
+              <p className="text-xs text-gray-500 mt-1">{analysis.theLesson}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Expand for details */}
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="mt-3 w-full text-center text-sm font-medium py-2 rounded-lg hover:bg-gray-100 transition-colors"
+          style={{ color: BRAND_RED }}
+        >
+          {isExpanded ? 'Show Less' : 'Show Detailed Breakdown'}
+        </button>
+      </div>
+
+      {/* Expanded Details */}
+      {isExpanded && (
+        <div className="p-4 border-t border-gray-100 space-y-4">
+          {/* Topic Breakdown */}
+          <div className="p-3 bg-blue-50 rounded-lg">
+            <h5 className="text-sm font-semibold text-blue-700 mb-2 flex items-center gap-2">
+              <TrendingIcon /> Topic Analysis
+            </h5>
+            <p className="text-sm text-blue-900">{analysis.topicBreakdown.explanation}</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {analysis.topicBreakdown.trendRiding && (
+                <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
+                  🌊 Riding a wave
+                </span>
+              )}
+              {analysis.topicBreakdown.culturalMoment && (
+                <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
+                  🎯 {analysis.topicBreakdown.culturalMoment}
+                </span>
+              )}
+              <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
+                ⏰ {analysis.topicBreakdown.timingDependence} timing dependence
+              </span>
+            </div>
+          </div>
+
+          {/* Storytelling Breakdown */}
+          <div className="p-3 bg-green-50 rounded-lg">
+            <h5 className="text-sm font-semibold text-green-700 mb-2 flex items-center gap-2">
+              <PenIcon /> Craft Analysis
+            </h5>
+            <p className="text-sm text-green-900">{analysis.storytellingBreakdown.explanation}</p>
+            <div className="mt-2 space-y-1 text-xs text-green-800">
+              {analysis.storytellingBreakdown.hookStrength && (
+                <p>🎣 <strong>Hook:</strong> {analysis.storytellingBreakdown.hookStrength}</p>
+              )}
+              {analysis.storytellingBreakdown.structureNotes && (
+                <p>📐 <strong>Structure:</strong> {analysis.storytellingBreakdown.structureNotes}</p>
+              )}
+              {analysis.storytellingBreakdown.authenticityFactor && (
+                <p>💫 <strong>Authenticity:</strong> {analysis.storytellingBreakdown.authenticityFactor}</p>
+              )}
+              {analysis.storytellingBreakdown.uniqueAngle && (
+                <p>🔮 <strong>Unique Angle:</strong> {analysis.storytellingBreakdown.uniqueAngle}</p>
+              )}
+            </div>
+          </div>
+
+          {/* ABH Relevance */}
+          <div className="p-3 rounded-lg" style={{ backgroundColor: '#FEF2F2' }}>
+            <h5 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: BRAND_RED }}>
+              <span>✨</span> ABH Relevance
+            </h5>
+            <div className="flex items-center gap-2 mb-1">
+              <span
+                className="px-2 py-0.5 text-xs rounded-full text-white capitalize"
+                style={{ backgroundColor: BRAND_RED }}
+              >
+                {analysis.abhRelevance.pillar}
+              </span>
+              <span className="text-sm font-bold" style={{ color: BRAND_RED }}>
+                {analysis.abhRelevance.score}/10
+              </span>
+            </div>
+            <p className="text-sm" style={{ color: '#7F1D1D' }}>{analysis.abhRelevance.angle}</p>
+          </div>
+
+          {/* View Tweet Link */}
+          <a
+            href={tweet.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg text-sm font-medium text-white transition-colors hover:opacity-90"
+            style={{ backgroundColor: BRAND_RED }}
+          >
+            <ExternalLinkIcon />
+            View Original Tweet
+          </a>
+        </div>
+      )}
+    </div>
+  );
+}
