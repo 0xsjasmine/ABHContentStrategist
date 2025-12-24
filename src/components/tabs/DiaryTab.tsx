@@ -82,24 +82,29 @@ interface HookSuggestion {
   whyItWorks: string;
 }
 
-interface ReframeSuggestion {
-  reframe: string;
+interface AmplificationSuggestion {
+  amplified: string;
   twist: string;
   emotionalArc: string;
 }
 
-interface BypassSuggestion {
-  version: string;
+interface FreshVersionSuggestion {
+  fresh: string;
   technique: string;
-  patternBreak: string;
+  whatMakesItFresh: string;
 }
 
 interface EnhanceResult {
   ai: 'grok' | 'claude' | 'gpt';
   success: boolean;
+  // Curiosity Gap
   hooks?: HookSuggestion[];
-  reframes?: ReframeSuggestion[];
-  bypasses?: BypassSuggestion[];
+  // Prediction Violation & Habituation Bypass
+  identifiedSection?: string;
+  whereInContent?: string;
+  whyThisIsTheBestPart?: string;
+  amplifications?: AmplificationSuggestion[];
+  freshVersions?: FreshVersionSuggestion[];
   error?: string;
 }
 
@@ -1283,35 +1288,61 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
                                 </div>
                               ))}
 
-                              {/* Reframes */}
-                              {activeEnhancement === 'prediction-violation' && result.reframes?.map((reframe, rIdx) => (
-                                <div
-                                  key={rIdx}
-                                  onClick={() => navigator.clipboard.writeText(reframe.reframe)}
-                                  className="p-2 rounded-lg bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors group"
-                                >
-                                  <p className="text-sm text-gray-900">{reframe.reframe}</p>
-                                  <div className="flex items-center justify-between mt-2">
-                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-100 text-orange-700">{reframe.twist}</span>
-                                    <span className="text-[10px] text-gray-400 opacity-0 group-hover:opacity-100">Click to copy</span>
-                                  </div>
-                                </div>
-                              ))}
+                              {/* Amplifications (Prediction Violation) */}
+                              {activeEnhancement === 'prediction-violation' && (
+                                <>
+                                  {result.identifiedSection && (
+                                    <div className="mb-3 p-2 rounded-lg bg-orange-50 border border-orange-200">
+                                      <p className="text-[10px] font-semibold text-orange-600 uppercase mb-1">Best Part Found ({result.whereInContent})</p>
+                                      <p className="text-xs text-gray-700 italic">&ldquo;{result.identifiedSection}&rdquo;</p>
+                                      {result.whyThisIsTheBestPart && (
+                                        <p className="text-[10px] text-gray-500 mt-1">{result.whyThisIsTheBestPart}</p>
+                                      )}
+                                    </div>
+                                  )}
+                                  {result.amplifications?.map((amp, aIdx) => (
+                                    <div
+                                      key={aIdx}
+                                      onClick={() => navigator.clipboard.writeText(amp.amplified)}
+                                      className="p-2 rounded-lg bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors group"
+                                    >
+                                      <p className="text-sm text-gray-900">{amp.amplified}</p>
+                                      <div className="flex items-center justify-between mt-2">
+                                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-100 text-orange-700">{amp.twist}</span>
+                                        <span className="text-[10px] text-gray-400 opacity-0 group-hover:opacity-100">Click to copy</span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </>
+                              )}
 
-                              {/* Bypasses */}
-                              {activeEnhancement === 'habituation-bypass' && result.bypasses?.map((bypass, bIdx) => (
-                                <div
-                                  key={bIdx}
-                                  onClick={() => navigator.clipboard.writeText(bypass.version)}
-                                  className="p-2 rounded-lg bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors group"
-                                >
-                                  <p className="text-sm text-gray-900">{bypass.version}</p>
-                                  <div className="flex items-center justify-between mt-2">
-                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-700">{bypass.technique}</span>
-                                    <span className="text-[10px] text-gray-400 opacity-0 group-hover:opacity-100">Click to copy</span>
-                                  </div>
-                                </div>
-                              ))}
+                              {/* Fresh Versions (Habituation Bypass) */}
+                              {activeEnhancement === 'habituation-bypass' && (
+                                <>
+                                  {result.identifiedSection && (
+                                    <div className="mb-3 p-2 rounded-lg bg-green-50 border border-green-200">
+                                      <p className="text-[10px] font-semibold text-green-600 uppercase mb-1">Best Part Found ({result.whereInContent})</p>
+                                      <p className="text-xs text-gray-700 italic">&ldquo;{result.identifiedSection}&rdquo;</p>
+                                      {result.whyThisIsTheBestPart && (
+                                        <p className="text-[10px] text-gray-500 mt-1">{result.whyThisIsTheBestPart}</p>
+                                      )}
+                                    </div>
+                                  )}
+                                  {result.freshVersions?.map((fresh, fIdx) => (
+                                    <div
+                                      key={fIdx}
+                                      onClick={() => navigator.clipboard.writeText(fresh.fresh)}
+                                      className="p-2 rounded-lg bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors group"
+                                    >
+                                      <p className="text-sm text-gray-900">{fresh.fresh}</p>
+                                      <div className="flex items-center justify-between mt-2">
+                                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-700">{fresh.technique}</span>
+                                        <span className="text-[10px] text-gray-400 opacity-0 group-hover:opacity-100">Click to copy</span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </>
+                              )}
                             </>
                           ) : (
                             <p className="text-sm text-red-500">{result.error || 'Failed'}</p>

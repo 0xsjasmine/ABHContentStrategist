@@ -13,24 +13,31 @@ interface HookSuggestion {
   whyItWorks: string;
 }
 
-interface ReframeSuggestion {
-  reframe: string;
+interface AmplificationSuggestion {
+  amplified: string;
   twist: string;
   emotionalArc: string;
 }
 
-interface BypassSuggestion {
-  version: string;
+interface FreshVersionSuggestion {
+  fresh: string;
   technique: string;
-  patternBreak: string;
+  whatMakesItFresh: string;
 }
 
 interface AIResult {
   ai: 'grok' | 'claude' | 'gpt';
   success: boolean;
+  // Curiosity Gap
   hooks?: HookSuggestion[];
-  reframes?: ReframeSuggestion[];
-  bypasses?: BypassSuggestion[];
+  // Prediction Violation & Habituation Bypass (shared fields)
+  identifiedSection?: string;
+  whereInContent?: string;
+  whyThisIsTheBestPart?: string;
+  // Prediction Violation specific
+  amplifications?: AmplificationSuggestion[];
+  // Habituation Bypass specific
+  freshVersions?: FreshVersionSuggestion[];
   error?: string;
   usage?: {
     inputTokens: number;
@@ -95,89 +102,104 @@ Generate 5 DIFFERENT hook variations for this content. Each hook should:
 Generate 5 hooks. Be creative. Make them IMPOSSIBLE to scroll past.`;
 }
 
-// Prediction Violation Prompt - reframes
+// Prediction Violation Prompt - find the BEST part (anywhere) and amplify
 function getPredictionViolationPrompt(userContent: string, aiName: string): string {
   return `You are ${aiName}, a master of the unexpected twist that DELIGHTS readers.
 
 ## THE PREDICTION VIOLATION PRINCIPLE
 Subvert expectations in a way that gives readers something BETTER than what they expected.
 
-Techniques that work:
-- The twist ("I got fired. Best thing that ever happened.")
-- The reframe ("They said I was too ambitious. I said thank you.")
-- The unexpected conclusion (build up to something, deliver something better)
-- The emotional pivot (sad to hopeful, frustrated to grateful)
-- The reveal (what seemed bad was actually the key to success)
-
 ## USER'S CONTENT
 """
 ${userContent}
 """
 
-## YOUR TASK
-Generate 3 DIFFERENT reframes of this story that create positive prediction violations.
+## YOUR TASK - CRITICAL
+1. READ THE ENTIRE CONTENT and find the BEST PART - this is NOT the intro/hook
+   - It's often the punchline, the realization, the vulnerable confession
+   - It's the sentence that has the most EMOTIONAL WEIGHT or INSIGHT
+   - It could be in the MIDDLE or at the END - look everywhere
+   - DON'T just pick the first sentence
 
-Each reframe should:
-1. Take the original story but twist the ending or conclusion
-2. Create an "oh!" moment of surprise
-3. Feel inevitable in hindsight (not random)
-4. Land on something emotionally satisfying
+2. Apply positive prediction violation to THAT best part:
+   - Add a twist that subverts expectation
+   - Create an "oh!" moment
+   - Make it land even harder
+
+Examples of "best parts" to look for:
+- The vulnerable admission ("I realized I was the problem")
+- The insight/lesson ("Turns out rejection was protection")
+- The emotional climax ("That's when I finally understood")
+- The surprising conclusion ("So I quit. And started over.")
 
 **OUTPUT FORMAT (JSON only):**
 {
-  "reframes": [
+  "identifiedSection": "The EXACT sentence/phrase you found (NOT the intro - find the gold)",
+  "whereInContent": "beginning|middle|end - where you found it",
+  "whyThisIsTheBestPart": "Why this sentence has the most potential (be specific)",
+  "amplifications": [
     {
-      "reframe": "The reframed version of the story (full text, under 280 chars)",
-      "twist": "What the twist is in 5-10 words",
+      "amplified": "The amplified version with a twist (under 100 chars)",
+      "twist": "The twist in 5-10 words",
       "emotionalArc": "sad-to-hopeful|frustration-to-gratitude|failure-to-insight|rejection-to-validation"
     }
   ]
 }
 
-Generate 3 reframes. Make readers say "wow, I didn't see that coming but it makes perfect sense."`;
+Generate 3 amplifications. Find the GOLD first.`;
 }
 
-// Habituation Bypass Prompt
+// Habituation Bypass Prompt - find the BEST part (anywhere) and make it unfamiliar
 function getHabituationBypassPrompt(userContent: string, aiName: string): string {
   return `You are ${aiName}, a master of breaking through scroll autopilot.
 
 ## THE HABITUATION BYPASS PRINCIPLE
 The brain notices what's DIFFERENT. Pattern interrupts break through the scroll trance.
 
-Techniques that work:
-- Vulnerability/confession openers ("I cried in a bathroom stall today")
-- Specific details that don't fit ("The $2.35 coffee that changed my career")
-- Pattern breaks ("Everyone says X. They're wrong.")
-- Unexpected structure (numbered lists mid-story, unusual formatting)
-- Jarring first words (start with a verb, a number, or a sensory detail)
-- Second-person direct address ("You're probably doing this wrong")
+Techniques:
+- Vulnerability/confession framing ("I cried in a bathroom stall today")
+- Hyper-specific details ("The $2.35 coffee that changed my career")
+- Sensory language (what you saw, heard, felt physically)
+- Jarring specificity (exact numbers, names, places)
 
 ## USER'S CONTENT
 """
 ${userContent}
 """
 
-## YOUR TASK
-Generate 3 DIFFERENT versions that use habituation bypass techniques.
+## YOUR TASK - CRITICAL
+1. READ THE ENTIRE CONTENT and find the BEST PART - this is NOT the intro
+   - It's the sentence with the most EMOTIONAL RESONANCE
+   - It could be a realization, a confession, a punchline
+   - It could be in the MIDDLE or at the END - look everywhere
+   - DON'T just pick the first sentence
 
-Each version should:
-1. Completely reword to break familiar patterns
-2. Use specific, unexpected details
-3. Feel fresh and pattern-breaking
-4. Keep the core message but deliver it unexpectedly
+2. Make THAT best part hit harder using habituation bypass:
+   - Add sensory details (what you saw, heard, felt)
+   - Add jarring specificity (exact numbers, names, times)
+   - Frame it as a vulnerable confession
+   - Make it IMPOSSIBLE to scroll past
+
+Examples of "best parts" to transform:
+- A buried insight → make it visceral with sensory detail
+- A generic statement → add jarring specificity
+- An emotional moment → frame it as a confession
 
 **OUTPUT FORMAT (JSON only):**
 {
-  "bypasses": [
+  "identifiedSection": "The EXACT sentence/phrase you found (NOT the intro - find the gold)",
+  "whereInContent": "beginning|middle|end - where you found it",
+  "whyThisIsTheBestPart": "Why this sentence could hit hardest (be specific)",
+  "freshVersions": [
     {
-      "version": "The full reworded text (under 280 chars)",
-      "technique": "confession|specific-detail|pattern-break|structure|jarring-opener|direct-address",
-      "patternBreak": "What familiar pattern this breaks"
+      "fresh": "The fresh version with habituation bypass applied (under 100 chars)",
+      "technique": "confession|specific-detail|sensory|jarring-specificity",
+      "whatMakesItFresh": "What makes this version impossible to scroll past"
     }
   ]
 }
 
-Generate 3 versions. Make them impossible to scroll past because they're so DIFFERENT from everything else.`;
+Generate 3 fresh versions. Find the GOLD first.`;
 }
 
 // Call Grok
@@ -218,8 +240,11 @@ async function callGrok(prompt: string, apiKey: string, dimension: string): Prom
       ai: 'grok',
       success: true,
       hooks: parsed.hooks,
-      reframes: parsed.reframes,
-      bypasses: parsed.bypasses,
+      identifiedSection: parsed.identifiedSection,
+      whereInContent: parsed.whereInContent,
+      whyThisIsTheBestPart: parsed.whyThisIsTheBestPart,
+      amplifications: parsed.amplifications,
+      freshVersions: parsed.freshVersions,
       usage,
     };
   } catch (error: any) {
@@ -272,8 +297,11 @@ async function callClaude(prompt: string, apiKey: string, dimension: string): Pr
           ai: 'claude',
           success: true,
           hooks: parsed.hooks,
-          reframes: parsed.reframes,
-          bypasses: parsed.bypasses,
+          identifiedSection: parsed.identifiedSection,
+          whereInContent: parsed.whereInContent,
+          whyThisIsTheBestPart: parsed.whyThisIsTheBestPart,
+          amplifications: parsed.amplifications,
+          freshVersions: parsed.freshVersions,
           usage,
         };
       } catch (e: any) {
@@ -326,8 +354,11 @@ async function callGPT(prompt: string, apiKey: string, dimension: string): Promi
       ai: 'gpt',
       success: true,
       hooks: parsed.hooks,
-      reframes: parsed.reframes,
-      bypasses: parsed.bypasses,
+      identifiedSection: parsed.identifiedSection,
+      whereInContent: parsed.whereInContent,
+      whyThisIsTheBestPart: parsed.whyThisIsTheBestPart,
+      amplifications: parsed.amplifications,
+      freshVersions: parsed.freshVersions,
       usage,
     };
   } catch (error: any) {
