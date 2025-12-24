@@ -78,7 +78,15 @@ export async function POST(request: NextRequest) {
     const data = await response.json();
     const draft = data.content?.[0]?.text || '';
 
-    return NextResponse.json({ draft });
+    // Extract usage data
+    const usage = {
+      claude: {
+        inputTokens: data.usage?.input_tokens || Math.ceil(prompt.length / 4),
+        outputTokens: data.usage?.output_tokens || Math.ceil(draft.length / 4),
+      },
+    };
+
+    return NextResponse.json({ draft, usage });
   } catch (error) {
     console.error('Error generating tweet:', error);
     return NextResponse.json(

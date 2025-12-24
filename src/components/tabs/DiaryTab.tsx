@@ -8,6 +8,7 @@ import {
   updateDiaryEntry,
   deleteDiaryEntry,
 } from '@/lib/db';
+import { updateApiUsage } from '@/lib/usage';
 import type { DiaryEntry, DiaryEntryType, CreatorId, CreatorTweet, ImportedStructure } from '@/types';
 import { CREATORS } from '@/types';
 
@@ -537,6 +538,11 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
         if (importedStructure) {
           handleClearStructure();
         }
+
+        // Track API usage
+        if (result.usage) {
+          updateApiUsage(result.usage, 'Diary Voice Remix');
+        }
       } else {
         console.error('Voice remix failed:', result.error);
       }
@@ -576,6 +582,11 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
 
       if (result.success && result.results) {
         setEnhanceResults(result.results);
+
+        // Track API usage
+        if (result.usage) {
+          updateApiUsage(result.usage, 'Diary Enhance');
+        }
       } else {
         console.error('Enhancement failed:', result.error);
       }

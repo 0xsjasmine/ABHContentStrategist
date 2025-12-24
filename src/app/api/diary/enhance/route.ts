@@ -32,6 +32,10 @@ interface AIResult {
   reframes?: ReframeSuggestion[];
   bypasses?: BypassSuggestion[];
   error?: string;
+  usage?: {
+    inputTokens: number;
+    outputTokens: number;
+  };
 }
 
 // Extract JSON from AI response
@@ -200,8 +204,14 @@ async function callGrok(prompt: string, apiKey: string, dimension: string): Prom
     const content = data.choices?.[0]?.message?.content || '';
     const parsed = extractJSON<any>(content);
 
+    // Extract usage data
+    const usage = {
+      inputTokens: data.usage?.prompt_tokens || Math.ceil(prompt.length / 4),
+      outputTokens: data.usage?.completion_tokens || Math.ceil(content.length / 4),
+    };
+
     if (!parsed) {
-      return { ai: 'grok', success: false, error: 'Could not parse response' };
+      return { ai: 'grok', success: false, error: 'Could not parse response', usage };
     }
 
     return {
@@ -210,6 +220,7 @@ async function callGrok(prompt: string, apiKey: string, dimension: string): Prom
       hooks: parsed.hooks,
       reframes: parsed.reframes,
       bypasses: parsed.bypasses,
+      usage,
     };
   } catch (error: any) {
     return { ai: 'grok', success: false, error: error.message };
@@ -247,8 +258,14 @@ async function callClaude(prompt: string, apiKey: string, dimension: string): Pr
         const content = data.content?.[0]?.text || '';
         const parsed = extractJSON<any>(content);
 
+        // Extract usage data
+        const usage = {
+          inputTokens: data.usage?.input_tokens || Math.ceil(prompt.length / 4),
+          outputTokens: data.usage?.output_tokens || Math.ceil(content.length / 4),
+        };
+
         if (!parsed) {
-          return { ai: 'claude', success: false, error: 'Could not parse response' };
+          return { ai: 'claude', success: false, error: 'Could not parse response', usage };
         }
 
         return {
@@ -257,6 +274,7 @@ async function callClaude(prompt: string, apiKey: string, dimension: string): Pr
           hooks: parsed.hooks,
           reframes: parsed.reframes,
           bypasses: parsed.bypasses,
+          usage,
         };
       } catch (e: any) {
         lastError = e.message;
@@ -294,8 +312,14 @@ async function callGPT(prompt: string, apiKey: string, dimension: string): Promi
     const content = data.choices?.[0]?.message?.content || '';
     const parsed = extractJSON<any>(content);
 
+    // Extract usage data
+    const usage = {
+      inputTokens: data.usage?.prompt_tokens || Math.ceil(prompt.length / 4),
+      outputTokens: data.usage?.completion_tokens || Math.ceil(content.length / 4),
+    };
+
     if (!parsed) {
-      return { ai: 'gpt', success: false, error: 'Could not parse response' };
+      return { ai: 'gpt', success: false, error: 'Could not parse response', usage };
     }
 
     return {
@@ -304,6 +328,7 @@ async function callGPT(prompt: string, apiKey: string, dimension: string): Promi
       hooks: parsed.hooks,
       reframes: parsed.reframes,
       bypasses: parsed.bypasses,
+      usage,
     };
   } catch (error: any) {
     return { ai: 'gpt', success: false, error: error.message };
@@ -366,11 +391,19 @@ export async function POST(request: NextRequest) {
     console.log(`Claude: ${claudeResult.success ? '✓' : '✗'} ${claudeResult.error || ''}`);
     console.log(`GPT: ${gptResult.success ? '✓' : '✗'} ${gptResult.error || ''}`);
 
+    // Aggregate usage data for client-side tracking
+    const usage = {
+      grok: grokResult.usage || { inputTokens: 0, outputTokens: 0 },
+      claude: claudeResult.usage || { inputTokens: 0, outputTokens: 0 },
+      openai: gptResult.usage || { inputTokens: 0, outputTokens: 0 },
+    };
+
     return NextResponse.json({
       success: true,
       dimension,
       results: [grokResult, claudeResult, gptResult],
       successCount: [grokResult, claudeResult, gptResult].filter(r => r.success).length,
+      usage,
     });
   } catch (error: any) {
     console.error('[Enhance] Error:', error);

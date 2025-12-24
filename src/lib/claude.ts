@@ -87,13 +87,23 @@ Respond with a JSON object (no markdown, just raw JSON) with this structure:
 // FIND CONNECTIONS
 // =====================
 
+export interface UsageData {
+  inputTokens: number;
+  outputTokens: number;
+}
+
+export interface FindConnectionsResult {
+  combinations: GenerationCombination[];
+  usage?: UsageData;
+}
+
 export async function findConnections(
   diaryEntry: DiaryEntry,
   bookQuotes: BookQuote[],
   savedPosts: SavedPost[],
   trendingTopics?: string[],
   apiKey?: string
-): Promise<GenerationCombination[]> {
+): Promise<FindConnectionsResult> {
   const client = getClient(apiKey);
 
   const booksContext = bookQuotes.length > 0
@@ -172,25 +182,37 @@ Always include a "Pure Diary Voice" option as the last combination with only dia
     throw new Error('No text response from Claude');
   }
 
+  // Extract usage data
+  const usage: UsageData = {
+    inputTokens: response.usage?.input_tokens || 0,
+    outputTokens: response.usage?.output_tokens || 0,
+  };
+
   try {
-    return JSON.parse(textContent.text) as GenerationCombination[];
+    return {
+      combinations: JSON.parse(textContent.text) as GenerationCombination[],
+      usage,
+    };
   } catch {
     // Return a default pure diary option
-    return [{
-      id: 'combo_pure',
-      title: 'Pure Diary Voice',
-      storytellingScore: 7,
-      timingScore: 5,
-      naturalFitScore: 10,
-      totalScore: 7.3,
-      elements: {
-        diary: {
-          insight: diaryEntry.content.substring(0, 200),
-          keyPhrases: [],
+    return {
+      combinations: [{
+        id: 'combo_pure',
+        title: 'Pure Diary Voice',
+        storytellingScore: 7,
+        timingScore: 5,
+        naturalFitScore: 10,
+        totalScore: 7.3,
+        elements: {
+          diary: {
+            insight: diaryEntry.content.substring(0, 200),
+            keyPhrases: [],
+          },
         },
-      },
-      whyCombination: ['Most authentic - 100% your voice'],
-    }];
+        whyCombination: ['Most authentic - 100% your voice'],
+      }],
+      usage,
+    };
   }
 }
 
@@ -198,13 +220,18 @@ Always include a "Pure Diary Voice" option as the last combination with only dia
 // GENERATE POST
 // =====================
 
+export interface GeneratePostResult {
+  post: GeneratedPost;
+  usage?: UsageData;
+}
+
 export async function generatePost(
   diaryEntry: DiaryEntry,
   combination: GenerationCombination,
   bookQuote?: BookQuote,
   formatPost?: SavedPost,
   apiKey?: string
-): Promise<GeneratedPost> {
+): Promise<GeneratePostResult> {
   const client = getClient(apiKey);
 
   let contextParts: string[] = [];
@@ -289,30 +316,42 @@ Generate the post and provide transparent sourcing. Respond with JSON (no markdo
     throw new Error('No text response from Claude');
   }
 
+  // Extract usage data
+  const usage: UsageData = {
+    inputTokens: response.usage?.input_tokens || 0,
+    outputTokens: response.usage?.output_tokens || 0,
+  };
+
   try {
     const parsed = JSON.parse(textContent.text);
     return {
-      id: `gen_${Date.now()}`,
-      ...parsed,
-      createdAt: new Date().toISOString(),
+      post: {
+        id: `gen_${Date.now()}`,
+        ...parsed,
+        createdAt: new Date().toISOString(),
+      },
+      usage,
     };
   } catch {
     // Return a fallback post
     return {
-      id: `gen_${Date.now()}`,
-      content: diaryEntry.content.substring(0, 280),
-      sources: [{
-        type: 'diary',
-        content: diaryEntry.content,
-        addedValue: 'foundation',
-      }],
-      voiceCheck: {
-        diaryVoicePercentage: 100,
-        ambitiousHumanSplit: { ambitious: 30, human: 70 },
+      post: {
+        id: `gen_${Date.now()}`,
+        content: diaryEntry.content.substring(0, 280),
+        sources: [{
+          type: 'diary',
+          content: diaryEntry.content,
+          addedValue: 'foundation',
+        }],
+        voiceCheck: {
+          diaryVoicePercentage: 100,
+          ambitiousHumanSplit: { ambitious: 30, human: 70 },
+        },
+        whyThisWorks: ['Pure diary voice - most authentic'],
+        characterCount: Math.min(diaryEntry.content.length, 280),
+        createdAt: new Date().toISOString(),
       },
-      whyThisWorks: ['Pure diary voice - most authentic'],
-      characterCount: Math.min(diaryEntry.content.length, 280),
-      createdAt: new Date().toISOString(),
+      usage,
     };
   }
 }

@@ -171,6 +171,14 @@ Please elevate this tweet using the psychological principles and any relevant in
     const data = await response.json();
     const responseText = data.content?.[0]?.text || '';
 
+    // Extract usage data
+    const usage = {
+      claude: {
+        inputTokens: data.usage?.input_tokens || Math.ceil(userMessage.length / 4),
+        outputTokens: data.usage?.output_tokens || Math.ceil(responseText.length / 4),
+      },
+    };
+
     // Parse JSON from response
     const jsonMatch = responseText.match(/```json\n?([\s\S]*?)\n?```/) ||
                       responseText.match(/\{[\s\S]*\}/);
@@ -178,7 +186,7 @@ Please elevate this tweet using the psychological principles and any relevant in
     if (jsonMatch) {
       const jsonStr = jsonMatch[1] || jsonMatch[0];
       const result = JSON.parse(jsonStr);
-      return NextResponse.json(result);
+      return NextResponse.json({ ...result, usage });
     }
 
     // Fallback if no JSON found
@@ -187,6 +195,7 @@ Please elevate this tweet using the psychological principles and any relevant in
       psychologyApplied: null,
       insightsUsed: [],
       changes: 'Could not parse structured response',
+      usage,
     });
   } catch (error) {
     console.error('Error elevating tweet:', error);

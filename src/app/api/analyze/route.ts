@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
 
     // Call Claude to find connections
     const trendTopics = trendHook ? [trendHook] : undefined;
-    const combinations = await findConnections(
+    const result = await findConnections(
       diaryEntry,
       bookQuotes,
       savedPosts,
@@ -109,7 +109,15 @@ export async function POST(request: NextRequest) {
       apiKey
     );
 
-    return NextResponse.json({ combinations });
+    // Include usage data for tracking
+    const usage = result.usage ? {
+      claude: {
+        inputTokens: result.usage.inputTokens,
+        outputTokens: result.usage.outputTokens,
+      },
+    } : undefined;
+
+    return NextResponse.json({ combinations: result.combinations, usage });
   } catch (error) {
     console.error('Analysis error:', error);
     return NextResponse.json(

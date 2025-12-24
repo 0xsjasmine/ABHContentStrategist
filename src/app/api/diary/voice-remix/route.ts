@@ -19,6 +19,10 @@ interface AIRemixResult {
   alternativeAngle?: string;
   error?: string;
   rawResponse?: string;
+  usage?: {
+    inputTokens: number;
+    outputTokens: number;
+  };
 }
 
 // Extract JSON from AI response
@@ -64,8 +68,13 @@ async function callGrok(prompt: string, apiKey: string): Promise<AIRemixResult> 
     const content = data.choices?.[0]?.message?.content || '';
     const parsed = extractJSON<any>(content);
 
+    const usage = {
+      inputTokens: data.usage?.prompt_tokens || Math.ceil(prompt.length / 4),
+      outputTokens: data.usage?.completion_tokens || Math.ceil(content.length / 4),
+    };
+
     if (!parsed || !parsed.tweet) {
-      return { ai: 'grok', success: false, error: 'Could not parse response', rawResponse: content };
+      return { ai: 'grok', success: false, error: 'Could not parse response', rawResponse: content, usage };
     }
 
     return {
@@ -78,6 +87,7 @@ async function callGrok(prompt: string, apiKey: string): Promise<AIRemixResult> 
       abhVoiceElement: parsed.abhVoiceElement,
       hookType: parsed.hookType,
       alternativeAngle: parsed.alternativeAngle,
+      usage,
     };
   } catch (error: any) {
     return { ai: 'grok', success: false, error: error.message };
@@ -119,8 +129,13 @@ async function callClaude(prompt: string, apiKey: string): Promise<AIRemixResult
         const content = data.content?.[0]?.text || '';
         const parsed = extractJSON<any>(content);
 
+        const usage = {
+          inputTokens: data.usage?.input_tokens || Math.ceil(prompt.length / 4),
+          outputTokens: data.usage?.output_tokens || Math.ceil(content.length / 4),
+        };
+
         if (!parsed || !parsed.tweet) {
-          return { ai: 'claude', success: false, error: 'Could not parse response', rawResponse: content };
+          return { ai: 'claude', success: false, error: 'Could not parse response', rawResponse: content, usage };
         }
 
         return {
@@ -133,6 +148,7 @@ async function callClaude(prompt: string, apiKey: string): Promise<AIRemixResult
           abhVoiceElement: parsed.abhVoiceElement,
           hookType: parsed.hookType,
           alternativeAngle: parsed.alternativeAngle,
+          usage,
         };
       } catch (e: any) {
         lastError = e.message;
@@ -170,8 +186,13 @@ async function callGPT(prompt: string, apiKey: string): Promise<AIRemixResult> {
     const content = data.choices?.[0]?.message?.content || '';
     const parsed = extractJSON<any>(content);
 
+    const usage = {
+      inputTokens: data.usage?.prompt_tokens || Math.ceil(prompt.length / 4),
+      outputTokens: data.usage?.completion_tokens || Math.ceil(content.length / 4),
+    };
+
     if (!parsed || !parsed.tweet) {
-      return { ai: 'gpt', success: false, error: 'Could not parse response', rawResponse: content };
+      return { ai: 'gpt', success: false, error: 'Could not parse response', rawResponse: content, usage };
     }
 
     return {
@@ -184,6 +205,7 @@ async function callGPT(prompt: string, apiKey: string): Promise<AIRemixResult> {
       abhVoiceElement: parsed.abhVoiceElement,
       hookType: parsed.hookType,
       alternativeAngle: parsed.alternativeAngle,
+      usage,
     };
   } catch (error: any) {
     return { ai: 'gpt', success: false, error: error.message };
@@ -266,9 +288,9 @@ export async function POST(request: NextRequest) {
 
     // Call all 3 AIs in parallel
     const [grokResult, claudeResult, gptResult] = await Promise.all([
-      grokKey ? callGrok(grokPrompt, grokKey) : Promise.resolve({ ai: 'grok' as const, success: false, error: 'API key not configured' }),
-      claudeKey ? callClaude(claudePrompt, claudeKey) : Promise.resolve({ ai: 'claude' as const, success: false, error: 'API key not configured' }),
-      openaiKey ? callGPT(gptPrompt, openaiKey) : Promise.resolve({ ai: 'gpt' as const, success: false, error: 'API key not configured' }),
+      grokKey ? callGrok(grokPrompt, grokKey) : Promise.resolve({ ai: 'grok', success: false, error: 'API key not configured' } as AIRemixResult),
+      claudeKey ? callClaude(claudePrompt, claudeKey) : Promise.resolve({ ai: 'claude', success: false, error: 'API key not configured' } as AIRemixResult),
+      openaiKey ? callGPT(gptPrompt, openaiKey) : Promise.resolve({ ai: 'gpt', success: false, error: 'API key not configured' } as AIRemixResult),
     ]);
 
     console.log('\n--- RESULTS ---');
@@ -291,12 +313,20 @@ export async function POST(request: NextRequest) {
       .filter(r => r.success)
       .sort((a, b) => calculateAvgScore(b) - calculateAvgScore(a));
 
+    // Aggregate usage data for client-side tracking
+    const usage = {
+      grok: grokResult.usage || { inputTokens: 0, outputTokens: 0 },
+      claude: claudeResult.usage || { inputTokens: 0, outputTokens: 0 },
+      openai: gptResult.usage || { inputTokens: 0, outputTokens: 0 },
+    };
+
     return NextResponse.json({
       success: true,
       creatorId,
       results: [grokResult, claudeResult, gptResult],
       bestResult: results[0] || null,
       successCount: results.length,
+      usage,
     });
   } catch (error: any) {
     console.error('[Voice Remix] Error:', error);

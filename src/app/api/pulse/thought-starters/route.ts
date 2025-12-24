@@ -10,6 +10,10 @@ interface ThoughtStarterResult {
   angle?: string;
   storyPrompt?: string;
   error?: string;
+  usage?: {
+    inputTokens: number;
+    outputTokens: number;
+  };
 }
 
 function getThoughtStarterPrompt(
@@ -98,8 +102,13 @@ async function callGrok(prompt: string, apiKey: string): Promise<ThoughtStarterR
     const content = data.choices?.[0]?.message?.content || '';
     const parsed = extractJSON<any>(content);
 
+    const usage = {
+      inputTokens: data.usage?.prompt_tokens || Math.ceil(prompt.length / 4),
+      outputTokens: data.usage?.completion_tokens || Math.ceil(content.length / 4),
+    };
+
     if (!parsed || !parsed.question) {
-      return { ai: 'grok', success: false, error: 'Could not parse response' };
+      return { ai: 'grok', success: false, error: 'Could not parse response', usage };
     }
 
     return {
@@ -108,6 +117,7 @@ async function callGrok(prompt: string, apiKey: string): Promise<ThoughtStarterR
       question: parsed.question,
       angle: parsed.angle,
       storyPrompt: parsed.storyPrompt,
+      usage,
     };
   } catch (error: any) {
     return { ai: 'grok', success: false, error: error.message };
@@ -145,8 +155,13 @@ async function callClaude(prompt: string, apiKey: string): Promise<ThoughtStarte
         const content = data.content?.[0]?.text || '';
         const parsed = extractJSON<any>(content);
 
+        const usage = {
+          inputTokens: data.usage?.input_tokens || Math.ceil(prompt.length / 4),
+          outputTokens: data.usage?.output_tokens || Math.ceil(content.length / 4),
+        };
+
         if (!parsed || !parsed.question) {
-          return { ai: 'claude', success: false, error: 'Could not parse response' };
+          return { ai: 'claude', success: false, error: 'Could not parse response', usage };
         }
 
         return {
@@ -155,6 +170,7 @@ async function callClaude(prompt: string, apiKey: string): Promise<ThoughtStarte
           question: parsed.question,
           angle: parsed.angle,
           storyPrompt: parsed.storyPrompt,
+          usage,
         };
       } catch (e: any) {
         lastError = e.message;
@@ -192,8 +208,13 @@ async function callGPT(prompt: string, apiKey: string): Promise<ThoughtStarterRe
     const content = data.choices?.[0]?.message?.content || '';
     const parsed = extractJSON<any>(content);
 
+    const usage = {
+      inputTokens: data.usage?.prompt_tokens || Math.ceil(prompt.length / 4),
+      outputTokens: data.usage?.completion_tokens || Math.ceil(content.length / 4),
+    };
+
     if (!parsed || !parsed.question) {
-      return { ai: 'gpt', success: false, error: 'Could not parse response' };
+      return { ai: 'gpt', success: false, error: 'Could not parse response', usage };
     }
 
     return {
@@ -202,6 +223,7 @@ async function callGPT(prompt: string, apiKey: string): Promise<ThoughtStarterRe
       question: parsed.question,
       angle: parsed.angle,
       storyPrompt: parsed.storyPrompt,
+      usage,
     };
   } catch (error: any) {
     return { ai: 'gpt', success: false, error: error.message };
@@ -258,10 +280,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Aggregate usage data for client-side tracking
+    const usage = {
+      grok: grokResult.usage || { inputTokens: 0, outputTokens: 0 },
+      claude: claudeResult.usage || { inputTokens: 0, outputTokens: 0 },
+      openai: gptResult.usage || { inputTokens: 0, outputTokens: 0 },
+    };
+
     return NextResponse.json({
       success: true,
       thoughtStarters,
       successCount: thoughtStarters.length,
+      usage,
     });
   } catch (error: any) {
     console.error('[Thought Starters] Error:', error);

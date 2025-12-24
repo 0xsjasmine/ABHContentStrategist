@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Call Claude to generate post
-    const generatedPost = await generatePost(
+    const result = await generatePost(
       diaryEntry,
       combination,
       bookQuote,
@@ -96,7 +96,15 @@ export async function POST(request: NextRequest) {
       apiKey
     );
 
-    return NextResponse.json(generatedPost);
+    // Include usage data for tracking
+    const usage = result.usage ? {
+      claude: {
+        inputTokens: result.usage.inputTokens,
+        outputTokens: result.usage.outputTokens,
+      },
+    } : undefined;
+
+    return NextResponse.json({ ...result.post, usage });
   } catch (error) {
     console.error('Generation error:', error);
     return NextResponse.json(
