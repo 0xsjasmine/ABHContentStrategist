@@ -87,8 +87,7 @@ async function callGrok(prompt: string, apiKey: string): Promise<AIReplyResult> 
 async function callClaude(prompt: string, apiKey: string): Promise<AIReplyResult> {
   try {
     const models = [
-      'claude-sonnet-4-5-20250514',
-      'claude-3-5-sonnet-latest',
+      'claude-sonnet-4-5-20250929',
       'claude-3-5-sonnet-20241022',
     ];
 

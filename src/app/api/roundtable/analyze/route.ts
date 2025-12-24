@@ -135,12 +135,9 @@ async function analyzeWithClaude(tweet: string, author: string): Promise<{ analy
   const client = new Anthropic({ apiKey });
 
   // Try multiple Claude models - newest first, with fallbacks
-  // Model naming: claude-[version]-[variant]-[date] or claude-[variant]-[version]-[date]
   const models = [
-    'claude-sonnet-4-5-20250514',      // Claude Sonnet 4.5 (if available)
-    'claude-3-5-sonnet-latest',         // Claude 3.5 Sonnet latest
-    'claude-3-5-sonnet-20241022',       // Claude 3.5 Sonnet specific date
-    'claude-3-sonnet-20240229',         // Claude 3 Sonnet fallback
+    'claude-sonnet-4-5-20250929',
+    'claude-3-5-sonnet-20241022',
   ];
   let lastError: Error | null = null;
 
