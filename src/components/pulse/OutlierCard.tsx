@@ -2,14 +2,14 @@
 
 import { useState } from 'react';
 import type { OutlierTweet } from '@/app/api/pulse/outliers/route';
-import type { ImportedStructure } from '@/types';
+import type { ImportedStructure, ThoughtStarter } from '@/types';
 import ReplyGirlModal from './ReplyGirlModal';
 
 const BRAND_RED = '#C41E3A';
 
-// Helper to save imported structure to localStorage
-function saveStructureToDiary(outlier: OutlierTweet & { handle: string }): ImportedStructure {
-  const structure: ImportedStructure = {
+// Helper to build imported structure (without thought starters initially)
+function buildStructure(outlier: OutlierTweet & { handle: string }): ImportedStructure {
+  return {
     id: `struct_${Date.now()}`,
     sourceHandle: outlier.handle,
     sourceTweetUrl: outlier.tweet.url,
@@ -23,12 +23,44 @@ function saveStructureToDiary(outlier: OutlierTweet & { handle: string }): Impor
     topicScore: outlier.analysis.topicScore,
     storytellingScore: outlier.analysis.storytellingScore,
     outperformanceMultiple: outlier.tweet.outperformanceMultiple,
+    originalTweetText: outlier.tweet.text,
   };
+}
 
-  // Save to localStorage (will be read by DiaryTab)
+// Save structure to localStorage
+function saveStructureToDiary(structure: ImportedStructure): void {
   localStorage.setItem('abh_imported_structure', JSON.stringify(structure));
+}
 
-  return structure;
+// Fetch thought starters from API
+async function fetchThoughtStarters(
+  tweetText: string,
+  structureNotes: string,
+  theLesson: string,
+  sourceHandle: string
+): Promise<ThoughtStarter[]> {
+  try {
+    const response = await fetch('/api/pulse/thought-starters', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tweetText,
+        structureNotes,
+        theLesson,
+        sourceHandle,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch thought starters');
+    }
+
+    const result = await response.json();
+    return result.thoughtStarters || [];
+  } catch (error) {
+    console.error('Error fetching thought starters:', error);
+    return [];
+  }
 }
 
 // Icons
@@ -80,6 +112,18 @@ const CheckCircleIcon = () => (
   </svg>
 );
 
+const LoaderIcon = () => (
+  <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+  </svg>
+);
+
+const MicIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+  </svg>
+);
+
 // Extended type to include handle
 interface OutlierCardProps {
   outlier: OutlierTweet & { handle: string };
@@ -114,15 +158,37 @@ export default function OutlierCard({ outlier, onSendToDiary }: OutlierCardProps
   const [isExpanded, setIsExpanded] = useState(false);
   const [showReplyGirl, setShowReplyGirl] = useState(false);
   const [structureSent, setStructureSent] = useState(false);
+  const [isLoadingThoughts, setIsLoadingThoughts] = useState(false);
   const { tweet, analysis, handle } = outlier;
 
-  // Handle sending structure to Diary
-  const handleSendToDiary = () => {
-    const structure = saveStructureToDiary(outlier);
+  // Handle sending structure to Diary (with thought starters)
+  const handleSendToDiary = async () => {
+    setIsLoadingThoughts(true);
+
+    // Build the base structure
+    const structure = buildStructure(outlier);
+
+    // Fetch thought starters from all 3 AIs
+    const thoughtStarters = await fetchThoughtStarters(
+      tweet.text,
+      structure.structureNotes,
+      structure.theLesson,
+      handle
+    );
+
+    // Add thought starters to structure
+    structure.thoughtStarters = thoughtStarters;
+
+    // Save to localStorage
+    saveStructureToDiary(structure);
+
+    setIsLoadingThoughts(false);
     setStructureSent(true);
+
     if (onSendToDiary) {
       onSendToDiary(structure);
     }
+
     // Reset after 3 seconds
     setTimeout(() => setStructureSent(false), 3000);
   };
@@ -326,26 +392,33 @@ export default function OutlierCard({ outlier, onSendToDiary }: OutlierCardProps
 
           {/* Action Buttons */}
           <div className="space-y-2">
-            {/* Primary Action: Use This Structure */}
+            {/* Primary Action: Use This Structure + Get Thought Starters */}
             <button
               onClick={handleSendToDiary}
-              disabled={structureSent}
+              disabled={structureSent || isLoadingThoughts}
               className={`w-full flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-medium transition-all ${
                 structureSent
                   ? 'bg-green-100 text-green-700 border border-green-200'
+                  : isLoadingThoughts
+                  ? 'bg-gray-100 text-gray-600 border border-gray-200'
                   : 'text-white hover:opacity-90'
               }`}
-              style={!structureSent ? { backgroundColor: BRAND_RED } : {}}
+              style={!structureSent && !isLoadingThoughts ? { backgroundColor: BRAND_RED } : {}}
             >
-              {structureSent ? (
+              {isLoadingThoughts ? (
+                <>
+                  <LoaderIcon />
+                  Generating thought starters...
+                </>
+              ) : structureSent ? (
                 <>
                   <CheckCircleIcon />
-                  Structure Saved! Open Diary to use it
+                  Ready! Open Diary for prompts
                 </>
               ) : (
                 <>
-                  <SendIcon />
-                  Use This Structure in Diary
+                  <MicIcon />
+                  Use Structure + Get Thought Starters
                 </>
               )}
             </button>

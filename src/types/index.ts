@@ -464,4 +464,17 @@ export interface ImportedStructure {
   topicScore: number;
   storytellingScore: number;
   outperformanceMultiple?: number;
+
+  // Original tweet text for context
+  originalTweetText?: string;
+
+  // Thought starters - podcast-style questions to spark reflection
+  thoughtStarters?: ThoughtStarter[];
+}
+
+export interface ThoughtStarter {
+  ai: 'grok' | 'claude' | 'gpt';
+  question: string; // The thought-provoking question
+  angle: string; // What perspective this question explores
+  storyPrompt: string; // A follow-up to dig into personal experience
 }

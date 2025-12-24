@@ -865,6 +865,67 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
                   {importedStructure.theLesson}
                 </p>
               </div>
+
+              {/* Thought Starters - Podcast-style prompts */}
+              {importedStructure.thoughtStarters && importedStructure.thoughtStarters.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-red-100">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Radio className="w-4 h-4" style={{ color: BRAND_RED }} />
+                    <span className="text-sm font-semibold text-gray-900">Podcast Prompts</span>
+                    <span className="text-xs text-gray-500">- pick one to inspire your writing</span>
+                  </div>
+                  <div className="space-y-3">
+                    {importedStructure.thoughtStarters.map((starter, idx) => {
+                      const aiColors = {
+                        grok: '#C41E3A',
+                        claude: '#8B5CF6',
+                        gpt: '#10B981',
+                      };
+                      const aiNames = {
+                        grok: 'Grok',
+                        claude: 'Claude',
+                        gpt: 'GPT',
+                      };
+
+                      return (
+                        <div
+                          key={idx}
+                          className="p-3 bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-colors cursor-pointer group"
+                          onClick={() => {
+                            // Copy question to clipboard
+                            navigator.clipboard.writeText(starter.question);
+                          }}
+                        >
+                          <div className="flex items-start gap-2">
+                            <span
+                              className="text-[10px] font-bold px-1.5 py-0.5 rounded text-white flex-shrink-0 mt-0.5"
+                              style={{ backgroundColor: aiColors[starter.ai] }}
+                            >
+                              {aiNames[starter.ai]}
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900 leading-snug">
+                                &ldquo;{starter.question}&rdquo;
+                              </p>
+                              <p className="text-xs text-gray-500 mt-1 italic">
+                                {starter.storyPrompt}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                              {starter.angle}
+                            </span>
+                            <span className="text-[10px] text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                              Click to copy
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
