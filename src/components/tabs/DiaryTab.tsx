@@ -624,44 +624,38 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
   const currentStatusStyle = STATUS_STYLES[currentStatus];
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleBack}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <ChevronLeft className="w-5 h-5 text-gray-600" />
-          </button>
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">
-              {selectedEntry ? getEpisodeTitle(selectedEntry) : 'New Episode'}
-            </h2>
-            <p className="text-xs text-gray-500">
-              Click back to return to episode list
-            </p>
-          </div>
-        </div>
-
-        {/* Status Badge */}
-        <div className="flex items-center gap-3">
-          <span
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium"
-            style={{ backgroundColor: currentStatusStyle.bg, color: currentStatusStyle.text }}
-          >
-            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: currentStatusStyle.text }}></span>
-            {currentStatusStyle.label}
-          </span>
-        </div>
-      </div>
-
-      {/* Split View - 50/50 Layout */}
-      <div className="flex-1 flex gap-6 min-h-0">
+    <div className="h-full flex flex-col -m-6">
+      {/* Full-width Split View - Notion Style */}
+      <div className="flex-1 flex min-h-0">
         {/* LEFT: Writing Area - 50% */}
-        <div className="w-1/2 flex flex-col bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="w-1/2 flex flex-col bg-white border-r border-gray-200">
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleBack}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <ChevronLeft className="w-5 h-5 text-gray-600" />
+              </button>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  {selectedEntry ? getEpisodeTitle(selectedEntry) : 'New Episode'}
+                </h2>
+                <p className="text-xs text-gray-500">Click back to return to episode list</p>
+              </div>
+            </div>
+            <span
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium"
+              style={{ backgroundColor: currentStatusStyle.bg, color: currentStatusStyle.text }}
+            >
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: currentStatusStyle.text }}></span>
+              {currentStatusStyle.label}
+            </span>
+          </div>
+
           {/* Type Tabs */}
-          <div className="flex items-center gap-1 p-2 border-b border-gray-100">
+          <div className="flex items-center gap-1 px-6 py-3 border-b border-gray-100 bg-gray-50">
             {CONTENT_TYPES.map(type => (
               <button
                 key={type.id}
@@ -677,32 +671,32 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
             ))}
           </div>
 
-          {/* Editor */}
-          <div className="flex-1 p-4 overflow-hidden">
+          {/* Editor - Full Height */}
+          <div className="flex-1 p-6 overflow-auto">
             <textarea
               value={editContent}
               onChange={(e) => setEditContent(e.target.value)}
               onBlur={handleSave}
               placeholder="Start writing your script..."
-              className="w-full h-full resize-none bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none font-mono text-sm leading-relaxed"
+              className="w-full h-full min-h-[400px] resize-none bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none font-mono text-sm leading-relaxed"
             />
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-gray-50">
-            <span className="text-xs text-gray-400">
+          <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
+            <span className="text-sm text-gray-500">
               {editContent.length} characters
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               {lastSaved && (
-                <span className="text-xs text-gray-400">
+                <span className="text-sm text-gray-400">
                   Saved {formatDate(lastSaved)}
                 </span>
               )}
               <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="px-3 py-1.5 text-sm font-medium rounded-lg text-white transition-colors hover:opacity-90 disabled:opacity-50"
+                className="px-4 py-2 text-sm font-medium rounded-lg text-white transition-colors hover:opacity-90 disabled:opacity-50"
                 style={{ backgroundColor: BRAND_RED }}
               >
                 {isSaving ? 'Saving...' : 'Save'}
@@ -712,36 +706,35 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
         </div>
 
         {/* RIGHT: Creator Voice & Generation Area - 50% */}
-        <div className="w-1/2 flex flex-col bg-white rounded-xl border border-gray-200 overflow-hidden">
-          {/* Creator Selection Section */}
-          <div className="px-4 py-3 border-b border-gray-100">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                <Lightbulb className="w-4 h-4" style={{ color: BRAND_RED }} />
+        <div className="w-1/2 flex flex-col bg-gray-100">
+          {/* Header */}
+          <div className="px-6 py-4 border-b border-gray-200 bg-white">
+            <div className="flex items-center justify-between">
+              <span className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <Lightbulb className="w-5 h-5" style={{ color: BRAND_RED }} />
                 Voice Style
               </span>
               <button
                 onClick={() => setShowCreatorModal(true)}
-                className="text-xs font-medium hover:underline"
+                className="text-sm font-medium px-3 py-1.5 rounded-lg transition-colors hover:bg-gray-100"
                 style={{ color: selectedCreatorId ? CREATORS.find(c => c.id === selectedCreatorId)?.color : BRAND_RED }}
               >
-                {selectedCreatorId ? 'Change' : '+ Select Creator'}
+                {selectedCreatorId ? 'Change Creator' : '+ Select Creator'}
               </button>
             </div>
-
             {selectedCreatorId ? (
               <div
-                className="p-2 rounded-lg flex items-center gap-2"
+                className="mt-3 p-3 rounded-lg flex items-center gap-3"
                 style={{ backgroundColor: `${CREATORS.find(c => c.id === selectedCreatorId)?.color}15` }}
               >
                 <span
-                  className="w-3 h-3 rounded-full"
+                  className="w-4 h-4 rounded-full"
                   style={{ backgroundColor: CREATORS.find(c => c.id === selectedCreatorId)?.color }}
                 />
                 <span className="text-sm font-medium text-gray-700">
                   {CREATORS.find(c => c.id === selectedCreatorId)?.name}&apos;s Style
                 </span>
-                <span className="text-xs text-gray-500">
+                <span className="text-sm text-gray-500">
                   ({creatorTweets.length} tweets)
                 </span>
                 <button
@@ -752,23 +745,23 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
                   }}
                   className="ml-auto text-gray-400 hover:text-gray-600"
                 >
-                  <X className="w-3 h-3" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
             ) : (
-              <p className="text-xs text-gray-400">
+              <p className="mt-2 text-sm text-gray-500">
                 Choose Steven, Mylene, or Greg&apos;s style to inspire your content
               </p>
             )}
           </div>
 
-          {/* AI Results or Preview */}
+          {/* AI Results or Preview - Full Height */}
           <div className="flex-1 overflow-y-auto">
             {aiResults.length > 0 ? (
-              <div className="p-3 space-y-3">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium text-gray-700">AI Suggestions</span>
-                  <span className="text-xs text-gray-400">
+              <div className="p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-gray-700">AI Suggestions</span>
+                  <span className="text-sm text-gray-500">
                     {aiResults.filter(r => r.success).length}/3 generated
                   </span>
                 </div>
@@ -782,71 +775,69 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
                   return (
                     <div
                       key={idx}
-                      className={`p-3 rounded-xl border transition-all ${
-                        result.success ? 'border-gray-200 hover:border-gray-300' : 'border-red-200 bg-red-50'
+                      className={`p-4 rounded-xl border bg-white transition-all ${
+                        result.success ? 'border-gray-200 hover:border-gray-300 hover:shadow-md' : 'border-red-200 bg-red-50'
                       }`}
                     >
                       {/* AI Header */}
-                      <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <div
-                            className="w-6 h-6 rounded-lg flex items-center justify-center"
+                            className="w-8 h-8 rounded-lg flex items-center justify-center"
                             style={{ backgroundColor: `${aiStyle.color}20` }}
                           >
-                            <Icon className="w-3.5 h-3.5" style={{ color: aiStyle.color }} />
+                            <Icon className="w-4 h-4" style={{ color: aiStyle.color }} />
                           </div>
-                          <span className="text-sm font-medium" style={{ color: aiStyle.color }}>
+                          <span className="text-sm font-semibold" style={{ color: aiStyle.color }}>
                             {aiStyle.name}
                           </span>
                         </div>
                         {result.success && result.scores && (
-                          <div className="flex items-center gap-1">
-                            <span className="text-xs font-bold" style={{ color: aiStyle.color }}>
-                              {avgScore}/10
-                            </span>
-                          </div>
+                          <span className="text-sm font-bold px-2 py-1 rounded-lg" style={{ backgroundColor: `${aiStyle.color}15`, color: aiStyle.color }}>
+                            {avgScore}/10
+                          </span>
                         )}
                       </div>
 
                       {result.success && result.tweet ? (
                         <>
                           {/* Tweet Content */}
-                          <p className="text-sm text-gray-800 mb-2 leading-relaxed">{result.tweet}</p>
+                          <p className="text-sm text-gray-800 mb-3 leading-relaxed">{result.tweet}</p>
 
                           {/* Scores */}
                           {result.scores && (
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
+                            <div className="flex items-center gap-2 mb-3">
+                              <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-600">
                                 CG: {result.scores.curiosityGap.score}
                               </span>
-                              <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
+                              <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-600">
                                 HB: {result.scores.habituationBypass.score}
                               </span>
-                              <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
+                              <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-600">
                                 PV: {result.scores.predictionViolation.score}
                               </span>
                             </div>
                           )}
 
                           {/* Footer */}
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-gray-400">
+                          <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                            <span className="text-xs text-gray-500">
                               {result.characterCount || result.tweet.length} chars
                               {result.hookType && ` · ${result.hookType}`}
                             </span>
                             <button
                               onClick={() => handleCopy(result.tweet!, idx)}
-                              className="flex items-center gap-1 text-xs font-medium hover:underline"
+                              className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors hover:bg-gray-100"
                               style={{ color: aiStyle.color }}
                             >
                               {copiedIndex === idx ? (
                                 <>
-                                  <Check className="w-3 h-3" />
+                                  <Check className="w-4 h-4" />
                                   Copied!
                                 </>
                               ) : (
                                 <>
-                                  <Copy className="w-3 h-3" />
+                                  <Copy className="w-4 h-4" />
                                   Copy
                                 </>
                               )}
@@ -854,37 +845,37 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
                           </div>
                         </>
                       ) : (
-                        <p className="text-xs text-red-500">{result.error || 'Failed to generate'}</p>
+                        <p className="text-sm text-red-500">{result.error || 'Failed to generate'}</p>
                       )}
                     </div>
                   );
                 })}
               </div>
             ) : (
-              <div className="flex-1 flex flex-col items-center justify-center p-6 bg-gray-900 min-h-[200px]">
+              <div className="h-full flex flex-col items-center justify-center p-8 bg-gray-900">
                 {editContent.length > 0 ? (
-                  <div className="w-full">
-                    <div className="bg-white rounded-lg p-4 max-w-full shadow-lg">
+                  <div className="w-full max-w-md">
+                    <div className="bg-white rounded-xl p-6 shadow-xl">
                       <div
-                        className="text-xs font-semibold uppercase tracking-wide mb-2"
+                        className="text-xs font-semibold uppercase tracking-wide mb-3"
                         style={{ color: BRAND_RED }}
                       >
-                        {TYPE_LABELS[editType]}
+                        {TYPE_LABELS[editType]} Preview
                       </div>
-                      <p className="text-sm text-gray-800 line-clamp-4">
-                        {editContent.slice(0, 150)}
-                        {editContent.length > 150 && '...'}
+                      <p className="text-sm text-gray-800 leading-relaxed">
+                        {editContent.slice(0, 200)}
+                        {editContent.length > 200 && '...'}
                       </p>
                     </div>
                   </div>
                 ) : (
                   <div className="text-center">
-                    <div className="w-12 h-12 rounded-lg border-2 border-dashed border-gray-600 flex items-center justify-center mb-4 mx-auto">
-                      <Image className="w-6 h-6 text-gray-500" />
+                    <div className="w-16 h-16 rounded-xl border-2 border-dashed border-gray-600 flex items-center justify-center mb-4 mx-auto">
+                      <Image className="w-8 h-8 text-gray-500" />
                     </div>
-                    <h4 className="text-white font-medium mb-1">No content yet</h4>
-                    <p className="text-gray-400 text-sm">
-                      Start writing to generate
+                    <h4 className="text-white text-lg font-medium mb-2">No content yet</h4>
+                    <p className="text-gray-400">
+                      Start writing to generate suggestions
                     </p>
                   </div>
                 )}
@@ -893,32 +884,32 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
           </div>
 
           {/* Generate Button */}
-          <div className="p-4 border-t border-gray-100">
+          <div className="p-6 border-t border-gray-200 bg-white">
             <button
               onClick={handleGenerate}
               disabled={!editContent || editContent.length < 20 || isGenerating}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium text-white transition-colors hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-medium text-white text-base transition-colors hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ backgroundColor: selectedCreatorId ? CREATORS.find(c => c.id === selectedCreatorId)?.color : BRAND_RED }}
             >
               {isGenerating ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-5 h-5 animate-spin" />
                   Generating with 3 AIs...
                 </>
               ) : selectedCreatorId ? (
                 <>
-                  <Sparkles className="w-4 h-4" />
+                  <Sparkles className="w-5 h-5" />
                   Generate ({CREATORS.find(c => c.id === selectedCreatorId)?.name} Style)
                 </>
               ) : (
                 <>
-                  <Lightbulb className="w-4 h-4" />
+                  <Lightbulb className="w-5 h-5" />
                   Select Creator First
                 </>
               )}
             </button>
             {!selectedCreatorId && editContent.length >= 20 && (
-              <p className="text-xs text-center text-gray-400 mt-2">
+              <p className="text-sm text-center text-gray-500 mt-3">
                 Pick a creator style to generate suggestions
               </p>
             )}
