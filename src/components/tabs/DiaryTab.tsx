@@ -1,14 +1,15 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, ChevronLeft, Trash2, Sparkles, Image, FileText, X, Check, Loader2, Lightbulb } from 'lucide-react';
+import { Plus, ChevronLeft, Trash2, Sparkles, Image, FileText, X, Check, Loader2, Lightbulb, Radio, Zap, Copy } from 'lucide-react';
 import {
   getAllDiaryEntries,
   createDiaryEntry,
   updateDiaryEntry,
   deleteDiaryEntry,
 } from '@/lib/db';
-import type { DiaryEntry, DiaryEntryType, TweetAnalysis } from '@/types';
+import type { DiaryEntry, DiaryEntryType, CreatorId, CreatorTweet } from '@/types';
+import { CREATORS } from '@/types';
 
 const BRAND_RED = '#C41E3A';
 
@@ -55,47 +56,72 @@ interface DiaryTabProps {
   onGeneratePost?: (entry: DiaryEntry) => void;
 }
 
-// Inspiration Selector Modal
-function InspirationModal({
+// AI Result type
+interface AIRemixResult {
+  ai: 'grok' | 'claude' | 'gpt';
+  success: boolean;
+  tweet?: string;
+  characterCount?: number;
+  scores?: {
+    curiosityGap: { score: number; reason: string };
+    habituationBypass: { score: number; reason: string };
+    predictionViolation: { score: number; reason: string };
+  };
+  structureBorrowed?: string;
+  hookType?: string;
+  error?: string;
+}
+
+// Creator Tweet Selector Modal
+function CreatorTweetSelectorModal({
   isOpen,
   onClose,
   onSelect,
-  selectedIds,
+  selectedCreatorId,
+  selectedTweetId,
 }: {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (tweets: TweetAnalysis[]) => void;
-  selectedIds: string[];
+  onSelect: (creatorId: CreatorId, tweetId: string | null, tweets: CreatorTweet[]) => void;
+  selectedCreatorId: CreatorId | null;
+  selectedTweetId: string | null;
 }) {
-  const [roundtableItems, setRoundtableItems] = useState<TweetAnalysis[]>([]);
-  const [localSelected, setLocalSelected] = useState<string[]>(selectedIds);
+  const [activeCreator, setActiveCreator] = useState<CreatorId>(selectedCreatorId || 'steven');
+  const [creatorTweets, setCreatorTweets] = useState<Record<CreatorId, CreatorTweet[]>>({
+    steven: [],
+    mylene: [],
+    greg: [],
+  });
+  const [localSelectedTweet, setLocalSelectedTweet] = useState<string | null>(selectedTweetId);
 
   useEffect(() => {
     if (isOpen) {
-      // Load from Roundtable localStorage
-      const saved = localStorage.getItem('abh_roundtable_analyses');
-      if (saved) {
-        try {
-          setRoundtableItems(JSON.parse(saved));
-        } catch {
-          setRoundtableItems([]);
+      // Load creator tweets from localStorage
+      CREATORS.forEach(creator => {
+        const saved = localStorage.getItem(`abh_creator_${creator.id}`);
+        if (saved) {
+          try {
+            setCreatorTweets(prev => ({
+              ...prev,
+              [creator.id]: JSON.parse(saved),
+            }));
+          } catch {
+            // Ignore
+          }
         }
-      }
-      setLocalSelected(selectedIds);
+      });
+      if (selectedCreatorId) setActiveCreator(selectedCreatorId);
+      setLocalSelectedTweet(selectedTweetId);
     }
-  }, [isOpen, selectedIds]);
-
-  const toggleSelect = (id: string) => {
-    setLocalSelected(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-    );
-  };
+  }, [isOpen, selectedCreatorId, selectedTweetId]);
 
   const handleConfirm = () => {
-    const selected = roundtableItems.filter(item => localSelected.includes(item.id));
-    onSelect(selected);
+    onSelect(activeCreator, localSelectedTweet, creatorTweets[activeCreator]);
     onClose();
   };
+
+  const currentCreator = CREATORS.find(c => c.id === activeCreator)!;
+  const currentTweets = creatorTweets[activeCreator] || [];
 
   if (!isOpen) return null;
 
@@ -106,55 +132,88 @@ function InspirationModal({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">Select Inspiration</h2>
-            <p className="text-sm text-gray-500">Choose tweets from Roundtable to inspire your content</p>
+            <h2 className="text-lg font-semibold text-gray-900">Choose Style Reference</h2>
+            <p className="text-sm text-gray-500">Pick a creator and optionally a specific tweet to inspire</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
             <X className="w-5 h-5 text-gray-500" />
           </button>
         </div>
 
+        {/* Creator Tabs */}
+        <div className="flex items-center gap-1 p-2 border-b border-gray-100">
+          {CREATORS.map(creator => (
+            <button
+              key={creator.id}
+              onClick={() => {
+                setActiveCreator(creator.id);
+                setLocalSelectedTweet(null);
+              }}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                activeCreator === creator.id
+                  ? 'bg-gray-900 text-white'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <span
+                className="w-2 h-2 rounded-full"
+                style={{ backgroundColor: creator.color }}
+              />
+              {creator.name}
+              <span className="text-xs opacity-60">
+                ({creatorTweets[creator.id]?.length || 0})
+              </span>
+            </button>
+          ))}
+        </div>
+
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4">
-          {roundtableItems.length === 0 ? (
+          {currentTweets.length === 0 ? (
             <div className="text-center py-12">
-              <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Lightbulb className="w-6 h-6 text-gray-400" />
+              <div
+                className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4"
+                style={{ backgroundColor: `${currentCreator.color}20` }}
+              >
+                <Lightbulb className="w-6 h-6" style={{ color: currentCreator.color }} />
               </div>
-              <p className="text-gray-500">No tweets in Roundtable yet</p>
-              <p className="text-sm text-gray-400 mt-1">Analyze some tweets first!</p>
+              <p className="text-gray-500">No tweets in {currentCreator.name}&apos;s library</p>
+              <p className="text-sm text-gray-400 mt-1">Add tweets in the Roundtable tab first!</p>
             </div>
           ) : (
-            <div className="grid gap-3">
-              {roundtableItems.map(item => {
-                const isSelected = localSelected.includes(item.id);
+            <div className="space-y-3">
+              <p className="text-xs text-gray-500 mb-3">
+                Select a specific tweet or use all of {currentCreator.name}&apos;s library
+              </p>
+              {currentTweets.map(tweet => {
+                const isSelected = localSelectedTweet === tweet.id;
                 return (
                   <div
-                    key={item.id}
-                    onClick={() => toggleSelect(item.id)}
+                    key={tweet.id}
+                    onClick={() => setLocalSelectedTweet(isSelected ? null : tweet.id)}
                     className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
                       isSelected
-                        ? 'border-[#C41E3A] bg-red-50'
+                        ? 'bg-gray-50'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
+                    style={isSelected ? { borderColor: currentCreator.color } : {}}
                   >
                     <div className="flex items-start gap-3">
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${
-                        isSelected ? 'bg-[#C41E3A] border-[#C41E3A]' : 'border-gray-300'
-                      }`}>
+                      <div
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5`}
+                        style={{
+                          backgroundColor: isSelected ? currentCreator.color : 'transparent',
+                          borderColor: isSelected ? currentCreator.color : '#D1D5DB',
+                        }}
+                      >
                         {isSelected && <Check className="w-3 h-3 text-white" />}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium text-gray-900">{item.tweet.author}</span>
-                          <span className="text-gray-400 text-sm">@{item.tweet.handle}</span>
+                          <span className="font-medium text-gray-900">{tweet.author}</span>
+                          <span className="text-gray-400 text-sm">@{tweet.handle}</span>
                         </div>
-                        <p className="text-sm text-gray-600 line-clamp-2">{item.tweet.text}</p>
-                        {item.claudeAnalysis?.keyInsight && (
-                          <p className="text-xs text-[#C41E3A] mt-2 italic">
-                            "{item.claudeAnalysis.keyInsight}"
-                          </p>
-                        )}
+                        <p className="text-sm text-gray-600 line-clamp-3">{tweet.text}</p>
                       </div>
                     </div>
                   </div>
@@ -167,7 +226,7 @@ function InspirationModal({
         {/* Footer */}
         <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
           <span className="text-sm text-gray-500">
-            {localSelected.length} selected
+            {localSelectedTweet ? '1 tweet selected' : `Using all ${currentTweets.length} tweets`}
           </span>
           <div className="flex items-center gap-3">
             <button
@@ -178,11 +237,11 @@ function InspirationModal({
             </button>
             <button
               onClick={handleConfirm}
-              disabled={localSelected.length === 0}
+              disabled={currentTweets.length === 0}
               className="px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors disabled:opacity-50"
-              style={{ backgroundColor: BRAND_RED }}
+              style={{ backgroundColor: currentCreator.color }}
             >
-              Use as Inspiration
+              Use {currentCreator.name}&apos;s Style
             </button>
           </div>
         </div>
@@ -226,16 +285,6 @@ function formatDate(dateString: string): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-// Remix result type
-interface RemixResult {
-  tweet: string;
-  characterCount: number;
-  techniqueBorrowed: string;
-  abhAngle: string;
-  hookType: string;
-  confidence: number;
-}
-
 export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
   // Core state
   const [entries, setEntries] = useState<DiaryEntry[]>([]);
@@ -249,12 +298,14 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
 
-  // Inspiration & Remix state
-  const [showInspirationModal, setShowInspirationModal] = useState(false);
-  const [selectedInspiration, setSelectedInspiration] = useState<TweetAnalysis[]>([]);
+  // Creator Voice Remix state
+  const [showCreatorModal, setShowCreatorModal] = useState(false);
+  const [selectedCreatorId, setSelectedCreatorId] = useState<CreatorId | null>(null);
+  const [selectedTweetId, setSelectedTweetId] = useState<string | null>(null);
+  const [creatorTweets, setCreatorTweets] = useState<CreatorTweet[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [remixResults, setRemixResults] = useState<RemixResult[]>([]);
-  const [selectedRemixIndex, setSelectedRemixIndex] = useState<number | null>(null);
+  const [aiResults, setAiResults] = useState<AIRemixResult[]>([]);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
   // Load entries
   const loadEntries = useCallback(async () => {
@@ -356,45 +407,40 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
     }
     setSelectedEntryId(null);
     // Clear remix state
-    setSelectedInspiration([]);
-    setRemixResults([]);
-    setSelectedRemixIndex(null);
+    setSelectedCreatorId(null);
+    setSelectedTweetId(null);
+    setCreatorTweets([]);
+    setAiResults([]);
   };
 
-  // Handle inspiration selection
-  const handleInspirationSelect = (tweets: TweetAnalysis[]) => {
-    setSelectedInspiration(tweets);
-    setRemixResults([]);
-    setSelectedRemixIndex(null);
+  // Handle creator selection
+  const handleCreatorSelect = (creatorId: CreatorId, tweetId: string | null, tweets: CreatorTweet[]) => {
+    setSelectedCreatorId(creatorId);
+    setSelectedTweetId(tweetId);
+    setCreatorTweets(tweets);
+    setAiResults([]);
   };
 
-  // Generate remixes
+  // Generate with all 3 AIs
   const handleGenerate = async () => {
     if (!editContent || editContent.length < 20) return;
-    if (selectedInspiration.length === 0) {
-      // If no inspiration selected, open the modal
-      setShowInspirationModal(true);
+    if (!selectedCreatorId || creatorTweets.length === 0) {
+      // If no creator selected, open the modal
+      setShowCreatorModal(true);
       return;
     }
 
     setIsGenerating(true);
-    setRemixResults([]);
+    setAiResults([]);
 
     try {
-      const response = await fetch('/api/diary/remix', {
+      const response = await fetch('/api/diary/voice-remix', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          inspirationTweets: selectedInspiration.map(t => ({
-            text: t.tweet.text,
-            author: t.tweet.author,
-            handle: t.tweet.handle,
-            analysis: {
-              curiosityGap: t.grokAnalysis?.curiosityGap,
-              predictionViolation: t.grokAnalysis?.predictionViolation,
-              keyInsight: t.claudeAnalysis?.keyInsight || t.grokAnalysis?.keyInsight,
-            },
-          })),
+          creatorId: selectedCreatorId,
+          selectedTweetId,
+          creatorTweets,
           userContent: editContent,
           contentType: editType,
         }),
@@ -402,11 +448,10 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
 
       const result = await response.json();
 
-      if (result.success && result.remixes) {
-        setRemixResults(result.remixes);
-        setSelectedRemixIndex(0);
+      if (result.success && result.results) {
+        setAiResults(result.results);
       } else {
-        console.error('Remix failed:', result.error);
+        console.error('Voice remix failed:', result.error);
       }
     } catch (error) {
       console.error('Failed to generate:', error);
@@ -415,9 +460,25 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
     }
   };
 
-  // Copy remix to clipboard
-  const handleCopyRemix = (text: string) => {
+  // Copy tweet to clipboard
+  const handleCopy = (text: string, index: number) => {
     navigator.clipboard.writeText(text);
+    setCopiedIndex(index);
+    setTimeout(() => setCopiedIndex(null), 2000);
+  };
+
+  // Get AI icon and color
+  const getAiStyle = (ai: string) => {
+    switch (ai) {
+      case 'grok':
+        return { icon: Radio, color: '#C41E3A', name: 'Grok' };
+      case 'claude':
+        return { icon: Sparkles, color: '#8B5CF6', name: 'Claude' };
+      case 'gpt':
+        return { icon: Zap, color: '#10B981', name: 'GPT-4o' };
+      default:
+        return { icon: Sparkles, color: '#666', name: ai };
+    }
   };
 
   // ============================================
@@ -650,90 +711,154 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
           </div>
         </div>
 
-        {/* RIGHT: Inspiration & Generation Area */}
-        <div className="w-96 flex flex-col bg-white rounded-xl border border-gray-200 overflow-hidden">
-          {/* Inspiration Section */}
+        {/* RIGHT: Creator Voice & Generation Area */}
+        <div className="w-[420px] flex flex-col bg-white rounded-xl border border-gray-200 overflow-hidden">
+          {/* Creator Selection Section */}
           <div className="px-4 py-3 border-b border-gray-100">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-gray-700 flex items-center gap-2">
                 <Lightbulb className="w-4 h-4" style={{ color: BRAND_RED }} />
-                Inspiration
+                Voice Style
               </span>
               <button
-                onClick={() => setShowInspirationModal(true)}
+                onClick={() => setShowCreatorModal(true)}
                 className="text-xs font-medium hover:underline"
-                style={{ color: BRAND_RED }}
+                style={{ color: selectedCreatorId ? CREATORS.find(c => c.id === selectedCreatorId)?.color : BRAND_RED }}
               >
-                {selectedInspiration.length > 0 ? 'Change' : '+ Add'}
+                {selectedCreatorId ? 'Change' : '+ Select Creator'}
               </button>
             </div>
 
-            {selectedInspiration.length > 0 ? (
-              <div className="space-y-2">
-                {selectedInspiration.map((tweet, idx) => (
-                  <div key={tweet.id} className="p-2 bg-red-50 rounded-lg">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-medium text-gray-600">@{tweet.tweet.handle}</span>
-                      <button
-                        onClick={() => setSelectedInspiration(prev => prev.filter((_, i) => i !== idx))}
-                        className="text-gray-400 hover:text-red-500"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                    <p className="text-xs text-gray-600 line-clamp-2">{tweet.tweet.text}</p>
-                  </div>
-                ))}
+            {selectedCreatorId ? (
+              <div
+                className="p-2 rounded-lg flex items-center gap-2"
+                style={{ backgroundColor: `${CREATORS.find(c => c.id === selectedCreatorId)?.color}15` }}
+              >
+                <span
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: CREATORS.find(c => c.id === selectedCreatorId)?.color }}
+                />
+                <span className="text-sm font-medium text-gray-700">
+                  {CREATORS.find(c => c.id === selectedCreatorId)?.name}&apos;s Style
+                </span>
+                <span className="text-xs text-gray-500">
+                  ({creatorTweets.length} tweets)
+                </span>
+                <button
+                  onClick={() => {
+                    setSelectedCreatorId(null);
+                    setCreatorTweets([]);
+                    setAiResults([]);
+                  }}
+                  className="ml-auto text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-3 h-3" />
+                </button>
               </div>
             ) : (
               <p className="text-xs text-gray-400">
-                Select tweets from Roundtable to inspire your remix
+                Choose Steven, Mylene, or Greg&apos;s style to inspire your content
               </p>
             )}
           </div>
 
-          {/* Remix Results or Preview */}
+          {/* AI Results or Preview */}
           <div className="flex-1 overflow-y-auto">
-            {remixResults.length > 0 ? (
-              <div className="p-4 space-y-3">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">Remix Options</span>
-                  <span className="text-xs text-gray-400">{remixResults.length} generated</span>
+            {aiResults.length > 0 ? (
+              <div className="p-3 space-y-3">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-sm font-medium text-gray-700">AI Suggestions</span>
+                  <span className="text-xs text-gray-400">
+                    {aiResults.filter(r => r.success).length}/3 generated
+                  </span>
                 </div>
-                {remixResults.map((remix, idx) => (
-                  <div
-                    key={idx}
-                    onClick={() => setSelectedRemixIndex(idx)}
-                    className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
-                      selectedRemixIndex === idx
-                        ? 'border-[#C41E3A] bg-red-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 capitalize">
-                        {remix.hookType}
-                      </span>
-                      <span className="text-xs text-gray-400">{remix.characterCount} chars</span>
+                {aiResults.map((result, idx) => {
+                  const aiStyle = getAiStyle(result.ai);
+                  const Icon = aiStyle.icon;
+                  const avgScore = result.scores
+                    ? Math.round((result.scores.curiosityGap.score + result.scores.habituationBypass.score + result.scores.predictionViolation.score) / 3)
+                    : 0;
+
+                  return (
+                    <div
+                      key={idx}
+                      className={`p-3 rounded-xl border transition-all ${
+                        result.success ? 'border-gray-200 hover:border-gray-300' : 'border-red-200 bg-red-50'
+                      }`}
+                    >
+                      {/* AI Header */}
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-6 h-6 rounded-lg flex items-center justify-center"
+                            style={{ backgroundColor: `${aiStyle.color}20` }}
+                          >
+                            <Icon className="w-3.5 h-3.5" style={{ color: aiStyle.color }} />
+                          </div>
+                          <span className="text-sm font-medium" style={{ color: aiStyle.color }}>
+                            {aiStyle.name}
+                          </span>
+                        </div>
+                        {result.success && result.scores && (
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs font-bold" style={{ color: aiStyle.color }}>
+                              {avgScore}/10
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {result.success && result.tweet ? (
+                        <>
+                          {/* Tweet Content */}
+                          <p className="text-sm text-gray-800 mb-2 leading-relaxed">{result.tweet}</p>
+
+                          {/* Scores */}
+                          {result.scores && (
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
+                                CG: {result.scores.curiosityGap.score}
+                              </span>
+                              <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
+                                HB: {result.scores.habituationBypass.score}
+                              </span>
+                              <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
+                                PV: {result.scores.predictionViolation.score}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Footer */}
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-gray-400">
+                              {result.characterCount || result.tweet.length} chars
+                              {result.hookType && ` · ${result.hookType}`}
+                            </span>
+                            <button
+                              onClick={() => handleCopy(result.tweet!, idx)}
+                              className="flex items-center gap-1 text-xs font-medium hover:underline"
+                              style={{ color: aiStyle.color }}
+                            >
+                              {copiedIndex === idx ? (
+                                <>
+                                  <Check className="w-3 h-3" />
+                                  Copied!
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="w-3 h-3" />
+                                  Copy
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <p className="text-xs text-red-500">{result.error || 'Failed to generate'}</p>
+                      )}
                     </div>
-                    <p className="text-sm text-gray-800 mb-2">{remix.tweet}</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-500 italic line-clamp-1">
-                        {remix.techniqueBorrowed}
-                      </span>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCopyRemix(remix.tweet);
-                        }}
-                        className="text-xs font-medium hover:underline"
-                        style={{ color: BRAND_RED }}
-                      >
-                        Copy
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center p-6 bg-gray-900 min-h-[200px]">
@@ -773,40 +898,41 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
               onClick={handleGenerate}
               disabled={!editContent || editContent.length < 20 || isGenerating}
               className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium text-white transition-colors hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ backgroundColor: BRAND_RED }}
+              style={{ backgroundColor: selectedCreatorId ? CREATORS.find(c => c.id === selectedCreatorId)?.color : BRAND_RED }}
             >
               {isGenerating ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Remixing...
+                  Generating with 3 AIs...
                 </>
-              ) : selectedInspiration.length > 0 ? (
+              ) : selectedCreatorId ? (
                 <>
                   <Sparkles className="w-4 h-4" />
-                  Generate Remix
+                  Generate ({CREATORS.find(c => c.id === selectedCreatorId)?.name} Style)
                 </>
               ) : (
                 <>
                   <Lightbulb className="w-4 h-4" />
-                  Add Inspiration First
+                  Select Creator First
                 </>
               )}
             </button>
-            {selectedInspiration.length === 0 && editContent.length >= 20 && (
+            {!selectedCreatorId && editContent.length >= 20 && (
               <p className="text-xs text-center text-gray-400 mt-2">
-                Select tweets from Roundtable to remix
+                Pick a creator style to generate suggestions
               </p>
             )}
           </div>
         </div>
       </div>
 
-      {/* Inspiration Modal */}
-      <InspirationModal
-        isOpen={showInspirationModal}
-        onClose={() => setShowInspirationModal(false)}
-        onSelect={handleInspirationSelect}
-        selectedIds={selectedInspiration.map(t => t.id)}
+      {/* Creator Tweet Selector Modal */}
+      <CreatorTweetSelectorModal
+        isOpen={showCreatorModal}
+        onClose={() => setShowCreatorModal(false)}
+        onSelect={handleCreatorSelect}
+        selectedCreatorId={selectedCreatorId}
+        selectedTweetId={selectedTweetId}
       />
     </div>
   );

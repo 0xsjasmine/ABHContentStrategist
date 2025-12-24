@@ -331,6 +331,38 @@ export interface TweetAnalysis {
   analyzedAt: string;
 }
 
+// =====================
+// CREATOR VOICE LIBRARY
+// =====================
+
+export type CreatorId = 'steven' | 'mylene' | 'greg';
+
+export interface CreatorProfile {
+  id: CreatorId;
+  name: string;
+  handle: string;
+  description: string;
+  color: string;
+}
+
+export const CREATORS: CreatorProfile[] = [
+  { id: 'steven', name: 'Steven', handle: '', description: 'Vulnerable storytelling, uses lists', color: '#3B82F6' },
+  { id: 'mylene', name: 'Mylene', handle: '', description: 'Punchy takes, contrarian angles', color: '#8B5CF6' },
+  { id: 'greg', name: 'Greg', handle: '', description: 'Strategic hooks, pattern interrupts', color: '#10B981' },
+];
+
+export interface CreatorTweet {
+  id: string;
+  creatorId: CreatorId;
+  text: string;
+  author: string;
+  handle: string;
+  url?: string;
+  embedHtml?: string;
+  addedAt: string;
+  notes?: string; // Optional notes about why this tweet works
+}
+
 export interface WeeklyPatternReport {
   id: string;
   weekOf: string;

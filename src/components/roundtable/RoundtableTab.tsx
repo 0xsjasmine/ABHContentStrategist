@@ -22,7 +22,8 @@ import {
   AlertCircle,
   Zap
 } from 'lucide-react';
-import type { TweetAnalysis, AIAnalysis } from '@/types';
+import type { TweetAnalysis, AIAnalysis, CreatorTweet, CreatorId } from '@/types';
+import { CREATORS } from '@/types';
 
 // Cost per token (approximate)
 const CLAUDE_INPUT_COST = 0.003 / 1000;  // $3 per 1M input tokens
@@ -966,11 +967,231 @@ One per line"
   );
 }
 
+// Simple Creator Tweet Card (no analysis needed)
+function CreatorTweetCard({
+  tweet,
+  onDelete,
+}: {
+  tweet: CreatorTweet;
+  onDelete: () => void;
+}) {
+  const embedRef = useRef<HTMLDivElement>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (showDeleteConfirm) {
+      onDelete();
+    } else {
+      setShowDeleteConfirm(true);
+      setTimeout(() => setShowDeleteConfirm(false), 3000);
+    }
+  };
+
+  // Load Twitter widget for embed
+  useEffect(() => {
+    if (tweet.embedHtml && embedRef.current) {
+      const loadWidget = () => {
+        const twttr = (window as unknown as { twttr?: { widgets?: { load?: (el: HTMLElement) => void } } }).twttr;
+        if (twttr?.widgets?.load && embedRef.current) {
+          twttr.widgets.load(embedRef.current);
+        }
+      };
+
+      const twttr = (window as unknown as { twttr?: { widgets?: { load?: (el: HTMLElement) => void } } }).twttr;
+      if (twttr?.widgets?.load) {
+        setTimeout(loadWidget, 50);
+      } else {
+        const existingScript = document.querySelector('script[src="https://platform.twitter.com/widgets.js"]');
+        if (!existingScript) {
+          const script = document.createElement('script');
+          script.src = 'https://platform.twitter.com/widgets.js';
+          script.async = true;
+          script.onload = () => setTimeout(loadWidget, 50);
+          document.body.appendChild(script);
+        } else {
+          setTimeout(loadWidget, 100);
+        }
+      }
+    }
+  }, [tweet.embedHtml, tweet.id]);
+
+  return (
+    <div className="bg-white border border-[#EEE] rounded-2xl overflow-hidden hover:shadow-lg transition-all duration-200 group w-full relative">
+      {/* Delete Button */}
+      <button
+        onClick={handleDelete}
+        className={`absolute top-3 right-3 p-2 rounded-lg transition-all z-20 ${
+          showDeleteConfirm
+            ? 'bg-red-500 text-white'
+            : 'bg-white/90 text-[#999] opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-red-500 shadow-sm'
+        }`}
+        title={showDeleteConfirm ? 'Click again to confirm' : 'Delete'}
+      >
+        <Trash2 className="w-4 h-4" />
+      </button>
+
+      {/* Twitter Embed */}
+      {tweet.embedHtml ? (
+        <div
+          ref={embedRef}
+          className="px-2 pb-2 pt-2 [&_blockquote]:!m-0 [&_blockquote]:!border-0 [&_.twitter-tweet]:!m-0 [&_iframe]:!max-w-full"
+          dangerouslySetInnerHTML={{ __html: tweet.embedHtml }}
+        />
+      ) : (
+        <div className="px-4 py-4">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#C41E3A] to-[#A31830] flex items-center justify-center text-white font-bold text-sm">
+              {tweet.author?.charAt(0)?.toUpperCase() || 'X'}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-[#1A1A1A] text-sm truncate">{tweet.author}</p>
+              <p className="text-xs text-[#999]">@{tweet.handle}</p>
+            </div>
+          </div>
+          <p className="text-[#1A1A1A] text-sm leading-relaxed">
+            {tweet.text}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Add Tweets Panel for Creator tabs (simpler - no analysis)
+function AddCreatorTweetsPanel({
+  creatorId,
+  onAddComplete,
+  isOpen,
+  onToggle,
+}: {
+  creatorId: CreatorId;
+  onAddComplete: (tweet: CreatorTweet) => void;
+  isOpen: boolean;
+  onToggle: () => void;
+}) {
+  const [urlInput, setUrlInput] = useState('');
+  const [isAdding, setIsAdding] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const creator = CREATORS.find(c => c.id === creatorId)!;
+
+  const handleAddTweet = async () => {
+    const url = urlInput.trim();
+    if (!url || (!url.includes('twitter.com') && !url.includes('x.com'))) {
+      setError('Please enter a valid Twitter/X URL');
+      return;
+    }
+
+    setIsAdding(true);
+    setError(null);
+
+    try {
+      // Fetch tweet embed from Twitter API
+      const response = await fetch(`/api/twitter/oembed?url=${encodeURIComponent(url)}`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch tweet');
+      }
+
+      // Create creator tweet
+      const newTweet: CreatorTweet = {
+        id: `creator_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        creatorId,
+        text: data.text || '',
+        author: data.author_name || creator.name,
+        handle: data.author_url?.split('/').pop() || '',
+        url,
+        embedHtml: data.html,
+        addedAt: new Date().toISOString(),
+      };
+
+      onAddComplete(newTweet);
+      setUrlInput('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to add tweet');
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  return (
+    <div className={`h-full bg-[#FAFAFA] border-l border-[#EEE] flex flex-col transition-all duration-300 ${isOpen ? 'w-80' : 'w-14'}`}>
+      <button
+        onClick={onToggle}
+        className="p-4 flex items-center gap-3 border-b border-[#EEE] hover:bg-white transition-colors"
+      >
+        <Plus className={`w-5 h-5 transition-transform`} style={{ color: creator.color }} />
+        {isOpen && <span className="font-medium text-[#1A1A1A]">Add to {creator.name}</span>}
+      </button>
+
+      {isOpen && (
+        <div className="flex-1 p-4 overflow-y-auto">
+          <div className="space-y-3">
+            <input
+              type="text"
+              value={urlInput}
+              onChange={(e) => setUrlInput(e.target.value)}
+              placeholder="Paste tweet URL..."
+              className="w-full px-3 py-3 bg-white border border-[#E5E5E5] rounded-xl text-sm focus:outline-none focus:border-[#C41E3A] font-mono placeholder:text-[#BBB]"
+              onKeyDown={(e) => e.key === 'Enter' && handleAddTweet()}
+            />
+
+            {error && (
+              <p className="text-xs text-red-500">{error}</p>
+            )}
+
+            <button
+              onClick={handleAddTweet}
+              disabled={!urlInput.trim() || isAdding}
+              className="w-full py-2.5 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              style={{ backgroundColor: creator.color }}
+            >
+              {isAdding ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Adding...
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4" />
+                  Add Tweet
+                </>
+              )}
+            </button>
+          </div>
+
+          <div className="mt-6 p-3 bg-white rounded-lg border border-[#EEE]">
+            <p className="text-xs text-[#666] mb-2">
+              <strong>About {creator.name}</strong>
+            </p>
+            <p className="text-xs text-[#999]">
+              {creator.description}
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Tab type for roundtable
+type RoundtableTab = 'all' | CreatorId;
+
 export default function RoundtableTab() {
+  const [activeTab, setActiveTab] = useState<RoundtableTab>('all');
   const [analyses, setAnalyses] = useState<TweetAnalysis[]>([]);
   const [selectedAnalysis, setSelectedAnalysis] = useState<TweetAnalysis | null>(null);
   const [analysisQueue, setAnalysisQueue] = useState<UrlQueueItem[]>([]);
   const [isPanelOpen, setIsPanelOpen] = useState(true);
+
+  // Creator tweets storage
+  const [creatorTweets, setCreatorTweets] = useState<Record<CreatorId, CreatorTweet[]>>({
+    steven: [],
+    mylene: [],
+    greg: [],
+  });
 
   // Load saved analyses from localStorage
   useEffect(() => {
@@ -984,6 +1205,23 @@ export default function RoundtableTab() {
     }
   }, []);
 
+  // Load creator tweets from localStorage
+  useEffect(() => {
+    CREATORS.forEach(creator => {
+      const saved = localStorage.getItem(`abh_creator_${creator.id}`);
+      if (saved) {
+        try {
+          setCreatorTweets(prev => ({
+            ...prev,
+            [creator.id]: JSON.parse(saved),
+          }));
+        } catch {
+          // Ignore
+        }
+      }
+    });
+  }, []);
+
   // Save analyses to localStorage
   useEffect(() => {
     if (analyses.length > 0) {
@@ -993,6 +1231,18 @@ export default function RoundtableTab() {
     }
   }, [analyses]);
 
+  // Save creator tweets to localStorage
+  useEffect(() => {
+    CREATORS.forEach(creator => {
+      const tweets = creatorTweets[creator.id];
+      if (tweets.length > 0) {
+        localStorage.setItem(`abh_creator_${creator.id}`, JSON.stringify(tweets));
+      } else {
+        localStorage.removeItem(`abh_creator_${creator.id}`);
+      }
+    });
+  }, [creatorTweets]);
+
   const handleDelete = (id: string) => {
     setAnalyses(prev => prev.filter(a => a.id !== id));
   };
@@ -1001,47 +1251,134 @@ export default function RoundtableTab() {
     setAnalyses(prev => [result, ...prev]);
   };
 
+  const handleCreatorTweetAdd = (creatorId: CreatorId, tweet: CreatorTweet) => {
+    setCreatorTweets(prev => ({
+      ...prev,
+      [creatorId]: [tweet, ...prev[creatorId]],
+    }));
+  };
+
+  const handleCreatorTweetDelete = (creatorId: CreatorId, tweetId: string) => {
+    setCreatorTweets(prev => ({
+      ...prev,
+      [creatorId]: prev[creatorId].filter(t => t.id !== tweetId),
+    }));
+  };
+
+  const tabs = [
+    { id: 'all' as const, label: 'All', color: '#C41E3A' },
+    ...CREATORS.map(c => ({ id: c.id, label: c.name, color: c.color })),
+  ];
+
+  const isCreatorTab = activeTab !== 'all';
+  const currentCreator = CREATORS.find(c => c.id === activeTab);
+
   return (
     <div className="flex h-[calc(100vh-120px)] -m-6">
       {/* Main Content - Left Side */}
       <div className="flex-1 overflow-y-auto p-6">
         {/* Header */}
-        <h1 className="text-2xl font-semibold text-[#1A1A1A] mb-6">Roundtable</h1>
+        <h1 className="text-2xl font-semibold text-[#1A1A1A] mb-4">Roundtable</h1>
 
-        {/* Card Grid */}
-        {analyses.length > 0 ? (
-          <div className={`grid gap-4 ${isPanelOpen ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3'}`}>
-            {analyses.map((analysis) => (
-              <TweetCard
-                key={analysis.id}
-                analysis={analysis}
-                onClick={() => setSelectedAnalysis(analysis)}
-                onDelete={() => handleDelete(analysis.id)}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="flex items-center justify-center h-[60vh]">
-            <div className="text-center">
-              <div className="w-12 h-12 bg-[#FFF0F3] rounded-full flex items-center justify-center mx-auto mb-4">
-                <Sparkles className="w-6 h-6 text-[#C41E3A]" />
-              </div>
-              <p className="text-[#999] text-sm">
-                {isPanelOpen ? 'Paste tweet URLs to get started' : 'Click + to add tweets'}
-              </p>
+        {/* Tab Navigation */}
+        <div className="flex items-center gap-1 p-1 bg-[#F5F5F5] rounded-xl w-fit mb-6">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                activeTab === tab.id
+                  ? 'bg-white text-[#1A1A1A] shadow-sm'
+                  : 'text-[#666] hover:text-[#1A1A1A]'
+              }`}
+              style={activeTab === tab.id ? { borderBottom: `2px solid ${tab.color}` } : {}}
+            >
+              {tab.label}
+              {tab.id !== 'all' && (
+                <span className="ml-1.5 text-xs opacity-60">
+                  ({creatorTweets[tab.id as CreatorId]?.length || 0})
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Content based on active tab */}
+        {activeTab === 'all' ? (
+          // All tab - analyzed tweets
+          analyses.length > 0 ? (
+            <div className={`grid gap-4 ${isPanelOpen ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3'}`}>
+              {analyses.map((analysis) => (
+                <TweetCard
+                  key={analysis.id}
+                  analysis={analysis}
+                  onClick={() => setSelectedAnalysis(analysis)}
+                  onDelete={() => handleDelete(analysis.id)}
+                />
+              ))}
             </div>
-          </div>
+          ) : (
+            <div className="flex items-center justify-center h-[50vh]">
+              <div className="text-center">
+                <div className="w-12 h-12 bg-[#FFF0F3] rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Sparkles className="w-6 h-6 text-[#C41E3A]" />
+                </div>
+                <p className="text-[#999] text-sm">
+                  {isPanelOpen ? 'Paste tweet URLs to analyze' : 'Click + to add tweets'}
+                </p>
+              </div>
+            </div>
+          )
+        ) : (
+          // Creator tab - simple tweet collection
+          creatorTweets[activeTab as CreatorId]?.length > 0 ? (
+            <div className={`grid gap-4 ${isPanelOpen ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3'}`}>
+              {creatorTweets[activeTab as CreatorId].map((tweet) => (
+                <CreatorTweetCard
+                  key={tweet.id}
+                  tweet={tweet}
+                  onDelete={() => handleCreatorTweetDelete(activeTab as CreatorId, tweet.id)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-[50vh]">
+              <div className="text-center">
+                <div
+                  className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4"
+                  style={{ backgroundColor: `${currentCreator?.color}20` }}
+                >
+                  <Users className="w-6 h-6" style={{ color: currentCreator?.color }} />
+                </div>
+                <p className="text-[#666] font-medium mb-1">
+                  {currentCreator?.name}&apos;s Voice Library
+                </p>
+                <p className="text-[#999] text-sm">
+                  Add tweets that represent their style
+                </p>
+              </div>
+            </div>
+          )
         )}
       </div>
 
       {/* Right Side Panel */}
-      <AddTweetsPanel
-        onAnalyzeComplete={handleAnalyzeComplete}
-        analysisQueue={analysisQueue}
-        setAnalysisQueue={setAnalysisQueue}
-        isOpen={isPanelOpen}
-        onToggle={() => setIsPanelOpen(!isPanelOpen)}
-      />
+      {activeTab === 'all' ? (
+        <AddTweetsPanel
+          onAnalyzeComplete={handleAnalyzeComplete}
+          analysisQueue={analysisQueue}
+          setAnalysisQueue={setAnalysisQueue}
+          isOpen={isPanelOpen}
+          onToggle={() => setIsPanelOpen(!isPanelOpen)}
+        />
+      ) : (
+        <AddCreatorTweetsPanel
+          creatorId={activeTab as CreatorId}
+          onAddComplete={(tweet) => handleCreatorTweetAdd(activeTab as CreatorId, tweet)}
+          isOpen={isPanelOpen}
+          onToggle={() => setIsPanelOpen(!isPanelOpen)}
+        />
+      )}
 
       {/* Swipe Analysis Modal */}
       {selectedAnalysis && (
