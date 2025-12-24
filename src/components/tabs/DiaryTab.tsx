@@ -656,10 +656,10 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
         </div>
       </div>
 
-      {/* Split View */}
+      {/* Split View - 50/50 Layout */}
       <div className="flex-1 flex gap-6 min-h-0">
-        {/* LEFT: Writing Area */}
-        <div className="flex-1 flex flex-col bg-white rounded-xl border border-gray-200 overflow-hidden">
+        {/* LEFT: Writing Area - 50% */}
+        <div className="w-1/2 flex flex-col bg-white rounded-xl border border-gray-200 overflow-hidden">
           {/* Type Tabs */}
           <div className="flex items-center gap-1 p-2 border-b border-gray-100">
             {CONTENT_TYPES.map(type => (
@@ -711,8 +711,8 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
           </div>
         </div>
 
-        {/* RIGHT: Creator Voice & Generation Area */}
-        <div className="w-[420px] flex flex-col bg-white rounded-xl border border-gray-200 overflow-hidden">
+        {/* RIGHT: Creator Voice & Generation Area - 50% */}
+        <div className="w-1/2 flex flex-col bg-white rounded-xl border border-gray-200 overflow-hidden">
           {/* Creator Selection Section */}
           <div className="px-4 py-3 border-b border-gray-100">
             <div className="flex items-center justify-between mb-2">
