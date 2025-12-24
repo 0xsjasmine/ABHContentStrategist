@@ -8,7 +8,7 @@ import {
   updateDiaryEntry,
   deleteDiaryEntry,
 } from '@/lib/db';
-import type { DiaryEntry, DiaryEntryType, CreatorId, CreatorTweet } from '@/types';
+import type { DiaryEntry, DiaryEntryType, CreatorId, CreatorTweet, ImportedStructure } from '@/types';
 import { CREATORS } from '@/types';
 
 const BRAND_RED = '#C41E3A';
@@ -307,6 +307,9 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
   const [aiResults, setAiResults] = useState<AIRemixResult[]>([]);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
+  // Imported Structure state (from Pulse Outliers)
+  const [importedStructure, setImportedStructure] = useState<ImportedStructure | null>(null);
+
   // Load entries
   const loadEntries = useCallback(async () => {
     try {
@@ -322,6 +325,41 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
   useEffect(() => {
     loadEntries();
   }, [loadEntries]);
+
+  // Check for imported structure from Pulse
+  useEffect(() => {
+    const checkImportedStructure = () => {
+      const saved = localStorage.getItem('abh_imported_structure');
+      if (saved) {
+        try {
+          const structure = JSON.parse(saved) as ImportedStructure;
+          // Only use if imported within last hour
+          const importedTime = new Date(structure.importedAt).getTime();
+          const oneHour = 60 * 60 * 1000;
+          if (Date.now() - importedTime < oneHour) {
+            setImportedStructure(structure);
+          } else {
+            // Clear stale structure
+            localStorage.removeItem('abh_imported_structure');
+          }
+        } catch {
+          // Ignore parse errors
+        }
+      }
+    };
+
+    // Check on mount and when entering detail view
+    checkImportedStructure();
+    // Also listen for storage changes (in case user switches tabs)
+    window.addEventListener('storage', checkImportedStructure);
+    return () => window.removeEventListener('storage', checkImportedStructure);
+  }, [selectedEntryId]);
+
+  // Clear imported structure
+  const handleClearStructure = () => {
+    setImportedStructure(null);
+    localStorage.removeItem('abh_imported_structure');
+  };
 
   // Get selected entry
   const selectedEntry = selectedEntryId
@@ -424,8 +462,16 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
   // Generate with all 3 AIs
   const handleGenerate = async () => {
     if (!editContent || editContent.length < 20) return;
+
+    // Allow generation if we have EITHER a creator selected OR an imported structure
+    if (!selectedCreatorId && !importedStructure) {
+      // If neither, open the modal
+      setShowCreatorModal(true);
+      return;
+    }
+
+    // If no creator but we have structure, still require creator selection
     if (!selectedCreatorId || creatorTweets.length === 0) {
-      // If no creator selected, open the modal
       setShowCreatorModal(true);
       return;
     }
@@ -443,6 +489,8 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
           creatorTweets,
           userContent: editContent,
           contentType: editType,
+          // Include imported structure if available
+          importedStructure: importedStructure || undefined,
         }),
       });
 
@@ -450,6 +498,10 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
 
       if (result.success && result.results) {
         setAiResults(result.results);
+        // Clear structure after successful generation
+        if (importedStructure) {
+          handleClearStructure();
+        }
       } else {
         console.error('Voice remix failed:', result.error);
       }
@@ -755,6 +807,69 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
             )}
           </div>
 
+          {/* Imported Structure Banner */}
+          {importedStructure && (
+            <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-red-50 to-orange-50">
+              <div className="flex items-start justify-between">
+                <div className="flex items-start gap-3">
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: BRAND_RED }}
+                  >
+                    <Zap className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-gray-900">Structure from Pulse</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-medium">
+                        {importedStructure.outperformanceMultiple}x performer
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      From @{importedStructure.sourceHandle}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleClearStructure}
+                  className="p-1.5 hover:bg-red-100 rounded-lg transition-colors text-gray-400 hover:text-red-500"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Structure Details */}
+              <div className="mt-3 space-y-2">
+                {importedStructure.hookStrength && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-xs font-medium text-gray-500 w-16 flex-shrink-0">Hook:</span>
+                    <span className="text-xs text-gray-700">{importedStructure.hookStrength}</span>
+                  </div>
+                )}
+                {importedStructure.structureNotes && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-xs font-medium text-gray-500 w-16 flex-shrink-0">Structure:</span>
+                    <span className="text-xs text-gray-700">{importedStructure.structureNotes}</span>
+                  </div>
+                )}
+                {importedStructure.uniqueAngle && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-xs font-medium text-gray-500 w-16 flex-shrink-0">Angle:</span>
+                    <span className="text-xs text-gray-700">{importedStructure.uniqueAngle}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* The Lesson */}
+              <div className="mt-3 p-2 bg-white/60 rounded-lg border border-red-100">
+                <p className="text-xs text-gray-600">
+                  <span className="font-semibold" style={{ color: BRAND_RED }}>The Lesson:</span>{' '}
+                  {importedStructure.theLesson}
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* AI Results or Preview - Full Height */}
           <div className="flex-1 overflow-y-auto">
             {aiResults.length > 0 ? (
@@ -899,7 +1014,10 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
               ) : selectedCreatorId ? (
                 <>
                   <Sparkles className="w-5 h-5" />
-                  Generate ({CREATORS.find(c => c.id === selectedCreatorId)?.name} Style)
+                  {importedStructure
+                    ? `Generate with ${CREATORS.find(c => c.id === selectedCreatorId)?.name} + Structure`
+                    : `Generate (${CREATORS.find(c => c.id === selectedCreatorId)?.name} Style)`
+                  }
                 </>
               ) : (
                 <>
@@ -911,6 +1029,7 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
             {!selectedCreatorId && editContent.length >= 20 && (
               <p className="text-sm text-center text-gray-500 mt-3">
                 Pick a creator style to generate suggestions
+                {importedStructure && ' (structure from Pulse will be applied)'}
               </p>
             )}
           </div>

@@ -1,7 +1,7 @@
 // ABH Voice Remix Prompt
 // Used by all 3 AIs (Grok, Claude, GPT) to generate content in a creator's style
 
-import type { CreatorId } from '@/types';
+import type { CreatorId, ImportedStructure } from '@/types';
 
 export interface CreatorStyleTweet {
   text: string;
@@ -14,6 +14,8 @@ export interface VoiceRemixRequest {
   creatorTweets: CreatorStyleTweet[];
   userContent: string;
   contentType: 'stories' | 'builds' | 'takes' | 'reflections';
+  // Optional: Structure imported from Pulse outliers
+  importedStructure?: ImportedStructure;
 }
 
 // The 3 Core Psychological Principles
@@ -122,7 +124,7 @@ export function getVoiceRemixPrompt(
   request: VoiceRemixRequest,
   aiName: 'Grok' | 'Claude' | 'GPT'
 ): string {
-  const { creatorId, creatorTweets, userContent, contentType } = request;
+  const { creatorId, creatorTweets, userContent, contentType, importedStructure } = request;
 
   const contentTypeGuidance: Record<string, string> = {
     stories: 'Focus on personal narrative, vulnerability, and relatable moments. Use "I" statements and specific details.',
@@ -136,19 +138,67 @@ export function getVoiceRemixPrompt(
 "${tweet.text}"
 `).join('\n');
 
+  // Build imported structure section if available
+  const importedStructureSection = importedStructure ? `
+
+---
+
+## 🎯 PRIORITY: IMPORTED STRUCTURE PATTERN
+
+**This is the PRIMARY structure to follow.** It was analyzed from a tweet by @${importedStructure.sourceHandle} that performed ${importedStructure.outperformanceMultiple || 'exceptionally'}x better than their average.
+
+### The Winning Pattern:
+- **Hook Type:** ${importedStructure.hookStrength}
+- **Structure Flow:** ${importedStructure.structureNotes}
+${importedStructure.authenticityFactor ? `- **Authenticity Factor:** ${importedStructure.authenticityFactor}` : ''}
+${importedStructure.uniqueAngle ? `- **Unique Angle:** ${importedStructure.uniqueAngle}` : ''}
+
+### Why It Worked:
+"${importedStructure.whatMadeItWork}"
+
+### The Lesson to Apply:
+"${importedStructure.theLesson}"
+
+### Scores from Analysis:
+- Topic/Timing: ${importedStructure.topicScore}/10
+- Storytelling/Craft: ${importedStructure.storytellingScore}/10
+
+**IMPORTANT:** Your task is to apply THIS EXACT STRUCTURE to the user's content below. Use ${creatorId}'s style as a secondary influence, but the structure from this analysis takes priority.
+` : '';
+
+  const taskDescription = importedStructure
+    ? `Create ONE tweet that:
+1. **FOLLOWS THE IMPORTED STRUCTURE** from the Pulse analysis above (hook → flow → angle)
+2. Uses ${creatorId}'s style elements as secondary inspiration
+3. Tells ABH's story in ABH's voice
+4. Nails all 3 psychological principles`
+    : `Create ONE tweet that:
+1. Uses the STRUCTURAL PATTERNS from ${creatorId}'s examples (hooks, formatting, pacing)
+2. Tells ABH's story in ABH's voice (NOT ${creatorId}'s voice)
+3. Nails all 3 psychological principles`;
+
+  const structureBorrowedField = importedStructure
+    ? `"structureBorrowed": "How you applied the imported structure from @${importedStructure.sourceHandle}"`
+    : `"structureBorrowed": "What specific structural element came from ${creatorId}"`;
+
   return `# ${aiName.toUpperCase()} VOICE REMIX ENGINE
 
 You are ${aiName}, helping ABH create content that combines:
-1. The STRUCTURAL TECHNIQUES of ${creatorId.charAt(0).toUpperCase() + creatorId.slice(1)}'s best tweets
+${importedStructure
+    ? `1. **THE PROVEN STRUCTURE** from a high-performing tweet (imported from Pulse)
+2. The stylistic influence of ${creatorId.charAt(0).toUpperCase() + creatorId.slice(1)}'s best tweets
+3. ABH's authentic voice and stories
+4. The 3 core psychological principles for viral growth`
+    : `1. The STRUCTURAL TECHNIQUES of ${creatorId.charAt(0).toUpperCase() + creatorId.slice(1)}'s best tweets
 2. ABH's authentic voice and stories
-3. The 3 core psychological principles for viral growth
+3. The 3 core psychological principles for viral growth`}
 
 ${ABH_VOICE}
 
 ${PSYCHOLOGICAL_PRINCIPLES}
 
 ${CREATOR_STYLES[creatorId]}
-
+${importedStructureSection}
 ---
 
 ## STYLE REFERENCE - ${creatorId.toUpperCase()}'S TWEETS TO STUDY
@@ -171,10 +221,7 @@ ${userContent}
 
 ## YOUR TASK
 
-Create ONE tweet that:
-1. Uses the STRUCTURAL PATTERNS from ${creatorId}'s examples (hooks, formatting, pacing)
-2. Tells ABH's story in ABH's voice (NOT ${creatorId}'s voice)
-3. Nails all 3 psychological principles
+${taskDescription}
 
 **OUTPUT FORMAT (JSON only, no markdown):**
 {
@@ -194,7 +241,7 @@ Create ONE tweet that:
       "reason": "Why this score"
     }
   },
-  "structureBorrowed": "What specific structural element came from ${creatorId}",
+  ${structureBorrowedField},
   "abhVoiceElement": "What makes this sound like ABH, not ${creatorId}",
   "hookType": "curiosity|confession|contrarian|story|question",
   "alternativeAngle": "One other way you could approach this content"
@@ -206,6 +253,7 @@ Create ONE tweet that:
 - The output should sound like ABH, not like ${creatorId}
 - Score yourself honestly on each principle
 - If any principle scores below 6, try again
+${importedStructure ? `- **CRITICAL:** Follow the imported structure pattern closely - that's why it was chosen!` : ''}
 
 Remember: The goal is to learn WHAT WORKS and apply it to ABH's authentic content.
 `;

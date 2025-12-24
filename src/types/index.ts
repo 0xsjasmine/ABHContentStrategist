@@ -439,3 +439,29 @@ export const CONTENT_PILLARS = [
   'Give back',
   'Taste & curation',
 ] as const;
+
+// =====================
+// IMPORTED STRUCTURE (Pulse -> Diary)
+// =====================
+
+export interface ImportedStructure {
+  id: string;
+  sourceHandle: string; // Who the outlier was from
+  sourceTweetUrl?: string; // Link to original tweet
+  importedAt: string; // ISO string
+
+  // The structure analysis from the outlier
+  hookStrength: string; // e.g., "Strong personal confession opener"
+  structureNotes: string; // e.g., "Provocation → List → Vulnerability → Close"
+  authenticityFactor?: string; // e.g., "Raw admission of failure"
+  uniqueAngle?: string; // e.g., "Turning weakness into unexpected strength"
+
+  // Quick summary
+  whatMadeItWork: string; // From analysis.whatStoodOut
+  theLesson: string; // From analysis.theLesson
+
+  // Scores for reference
+  topicScore: number;
+  storytellingScore: number;
+  outperformanceMultiple?: number;
+}

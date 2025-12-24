@@ -2,9 +2,34 @@
 
 import { useState } from 'react';
 import type { OutlierTweet } from '@/app/api/pulse/outliers/route';
+import type { ImportedStructure } from '@/types';
 import ReplyGirlModal from './ReplyGirlModal';
 
 const BRAND_RED = '#C41E3A';
+
+// Helper to save imported structure to localStorage
+function saveStructureToDiary(outlier: OutlierTweet & { handle: string }): ImportedStructure {
+  const structure: ImportedStructure = {
+    id: `struct_${Date.now()}`,
+    sourceHandle: outlier.handle,
+    sourceTweetUrl: outlier.tweet.url,
+    importedAt: new Date().toISOString(),
+    hookStrength: outlier.analysis.storytellingBreakdown.hookStrength || 'Not analyzed',
+    structureNotes: outlier.analysis.storytellingBreakdown.structureNotes || 'Not analyzed',
+    authenticityFactor: outlier.analysis.storytellingBreakdown.authenticityFactor,
+    uniqueAngle: outlier.analysis.storytellingBreakdown.uniqueAngle,
+    whatMadeItWork: outlier.analysis.whatStoodOut,
+    theLesson: outlier.analysis.theLesson,
+    topicScore: outlier.analysis.topicScore,
+    storytellingScore: outlier.analysis.storytellingScore,
+    outperformanceMultiple: outlier.tweet.outperformanceMultiple,
+  };
+
+  // Save to localStorage (will be read by DiaryTab)
+  localStorage.setItem('abh_imported_structure', JSON.stringify(structure));
+
+  return structure;
+}
 
 // Icons
 const TrendingIcon = () => (
@@ -43,9 +68,22 @@ const SparklesIcon = () => (
   </svg>
 );
 
+const SendIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+  </svg>
+);
+
+const CheckCircleIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
 // Extended type to include handle
 interface OutlierCardProps {
   outlier: OutlierTweet & { handle: string };
+  onSendToDiary?: (structure: ImportedStructure) => void;
 }
 
 function ScoreBar({ label, score, color, icon }: { label: string; score: number; color: string; icon: React.ReactNode }) {
@@ -72,10 +110,22 @@ function formatNumber(num: number): string {
   return num.toString();
 }
 
-export default function OutlierCard({ outlier }: OutlierCardProps) {
+export default function OutlierCard({ outlier, onSendToDiary }: OutlierCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showReplyGirl, setShowReplyGirl] = useState(false);
+  const [structureSent, setStructureSent] = useState(false);
   const { tweet, analysis, handle } = outlier;
+
+  // Handle sending structure to Diary
+  const handleSendToDiary = () => {
+    const structure = saveStructureToDiary(outlier);
+    setStructureSent(true);
+    if (onSendToDiary) {
+      onSendToDiary(structure);
+    }
+    // Reset after 3 seconds
+    setTimeout(() => setStructureSent(false), 3000);
+  };
 
   // Prepare post for Reply Girl
   const replyGirlPost = {
@@ -275,24 +325,50 @@ export default function OutlierCard({ outlier }: OutlierCardProps) {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-2">
+          <div className="space-y-2">
+            {/* Primary Action: Use This Structure */}
             <button
-              onClick={() => setShowReplyGirl(true)}
-              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium text-white transition-colors hover:opacity-90"
-              style={{ backgroundColor: BRAND_RED }}
+              onClick={handleSendToDiary}
+              disabled={structureSent}
+              className={`w-full flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-medium transition-all ${
+                structureSent
+                  ? 'bg-green-100 text-green-700 border border-green-200'
+                  : 'text-white hover:opacity-90'
+              }`}
+              style={!structureSent ? { backgroundColor: BRAND_RED } : {}}
             >
-              <SparklesIcon />
-              Reply Girl
+              {structureSent ? (
+                <>
+                  <CheckCircleIcon />
+                  Structure Saved! Open Diary to use it
+                </>
+              ) : (
+                <>
+                  <SendIcon />
+                  Use This Structure in Diary
+                </>
+              )}
             </button>
-            <a
-              href={tweet.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium border border-gray-200 text-gray-700 transition-colors hover:bg-gray-50"
-            >
-              <ExternalLinkIcon />
-              View Tweet
-            </a>
+
+            {/* Secondary Actions */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowReplyGirl(true)}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium border border-gray-200 text-gray-700 transition-colors hover:bg-gray-50"
+              >
+                <SparklesIcon />
+                Reply Girl
+              </button>
+              <a
+                href={tweet.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium border border-gray-200 text-gray-700 transition-colors hover:bg-gray-50"
+              >
+                <ExternalLinkIcon />
+                View Tweet
+              </a>
+            </div>
           </div>
         </div>
       )}

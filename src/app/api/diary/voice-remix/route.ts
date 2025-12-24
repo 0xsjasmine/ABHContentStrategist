@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getVoiceRemixPrompt, VoiceRemixRequest } from '@/prompts/abh-voice-remix';
-import type { CreatorId, CreatorTweet } from '@/types';
+import type { CreatorId, CreatorTweet, ImportedStructure } from '@/types';
 
 // AI Response structure
 interface AIRemixResult {
@@ -193,7 +193,7 @@ async function callGPT(prompt: string, apiKey: string): Promise<AIRemixResult> {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { creatorId, selectedTweetId, userContent, contentType } = body;
+    const { creatorId, selectedTweetId, userContent, contentType, importedStructure } = body;
 
     // Validate inputs
     if (!creatorId || !['steven', 'mylene', 'greg'].includes(creatorId)) {
@@ -249,7 +249,15 @@ export async function POST(request: NextRequest) {
       })),
       userContent,
       contentType: contentType || 'stories',
+      // Include imported structure if provided
+      importedStructure: importedStructure as ImportedStructure | undefined,
     };
+
+    // Log if using imported structure
+    if (importedStructure) {
+      console.log(`  Using imported structure from @${importedStructure.sourceHandle}`)
+      console.log(`  Structure: ${importedStructure.structureNotes}`);
+    }
 
     // Generate prompts for each AI
     const grokPrompt = getVoiceRemixPrompt(remixRequest, 'Grok');
