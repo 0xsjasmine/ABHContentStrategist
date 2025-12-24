@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { OutlierTweet } from '@/app/api/pulse/outliers/route';
+import ReplyGirlModal from './ReplyGirlModal';
 
 const BRAND_RED = '#C41E3A';
 
@@ -27,6 +28,18 @@ const ExternalLinkIcon = () => (
 const LightbulbIcon = () => (
   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
     <path d="M9 21c0 .5.4 1 1 1h4c.6 0 1-.5 1-1v-1H9v1zm3-19C8.1 2 5 5.1 5 9c0 2.4 1.2 4.5 3 5.7V17c0 .5.4 1 1 1h6c.6 0 1-.5 1-1v-2.3c1.8-1.3 3-3.4 3-5.7 0-3.9-3.1-7-7-7z"/>
+  </svg>
+);
+
+const ReplyIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+  </svg>
+);
+
+const SparklesIcon = () => (
+  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+    <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/>
   </svg>
 );
 
@@ -61,7 +74,18 @@ function formatNumber(num: number): string {
 
 export default function OutlierCard({ outlier }: OutlierCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showReplyGirl, setShowReplyGirl] = useState(false);
   const { tweet, analysis, handle } = outlier;
+
+  // Prepare post for Reply Girl
+  const replyGirlPost = {
+    text: tweet.text,
+    author: handle.replace('@', ''),
+    handle: handle.replace('@', ''),
+    url: tweet.url,
+  };
+
+  const insightContext = `This is an outlier tweet that performed ${tweet.outperformanceMultiple}x better than average. ${analysis.whatStoodOut}. ${analysis.theLesson}`;
 
   // Determine if topic or storytelling driven
   const isDominantlyTopic = analysis.topicScore > analysis.storytellingScore + 2;
@@ -250,19 +274,36 @@ export default function OutlierCard({ outlier }: OutlierCardProps) {
             <p className="text-sm" style={{ color: '#7F1D1D' }}>{analysis.abhRelevance.angle}</p>
           </div>
 
-          {/* View Tweet Link */}
-          <a
-            href={tweet.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg text-sm font-medium text-white transition-colors hover:opacity-90"
-            style={{ backgroundColor: BRAND_RED }}
-          >
-            <ExternalLinkIcon />
-            View Original Tweet
-          </a>
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowReplyGirl(true)}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium text-white transition-colors hover:opacity-90"
+              style={{ backgroundColor: BRAND_RED }}
+            >
+              <SparklesIcon />
+              Reply Girl
+            </button>
+            <a
+              href={tweet.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium border border-gray-200 text-gray-700 transition-colors hover:bg-gray-50"
+            >
+              <ExternalLinkIcon />
+              View Tweet
+            </a>
+          </div>
         </div>
       )}
+
+      {/* Reply Girl Modal */}
+      <ReplyGirlModal
+        isOpen={showReplyGirl}
+        onClose={() => setShowReplyGirl(false)}
+        originalPost={replyGirlPost}
+        insightContext={insightContext}
+      />
     </div>
   );
 }

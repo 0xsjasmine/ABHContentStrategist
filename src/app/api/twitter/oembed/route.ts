@@ -26,8 +26,8 @@ export async function GET(request: NextRequest) {
     // Extract tweet text from HTML (basic extraction)
     let text = '';
     if (data.html) {
-      // Extract text between <p> tags
-      const match = data.html.match(/<p[^>]*>(.*?)<\/p>/s);
+      // Extract text between <p> tags (using [\s\S] instead of /s flag for compatibility)
+      const match = data.html.match(/<p[^>]*>([\s\S]*?)<\/p>/);
       if (match) {
         text = match[1]
           .replace(/<[^>]+>/g, '') // Remove HTML tags

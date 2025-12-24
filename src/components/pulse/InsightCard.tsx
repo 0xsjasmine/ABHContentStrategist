@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import type { ABHCategory, ABHScore, KeyPost, EngagementOpportunity } from '@/types/database';
+import ReplyGirlModal from './ReplyGirlModal';
 
 // Brand colors only
 const BRAND_RED = '#C41E3A';
@@ -54,6 +55,12 @@ const HashtagIcon = () => (
 const ChatIcon = () => (
   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+  </svg>
+);
+
+const ReplyIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
   </svg>
 );
 
@@ -342,6 +349,20 @@ export function InsightModal({
   onEngage,
 }: InsightModalProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showReplyGirl, setShowReplyGirl] = useState(false);
+
+  // Get the first key post for Reply Girl
+  const firstKeyPost = keyPosts[0];
+  const replyGirlPost = firstKeyPost ? {
+    text: firstKeyPost.postText || firstKeyPost.postSummary || headline,
+    author: firstKeyPost.handle?.replace('@', '') || 'Unknown',
+    handle: firstKeyPost.handle?.replace('@', '') || 'unknown',
+    url: firstKeyPost.tweetUrl,
+  } : {
+    text: headline + (subtitle ? ` - ${subtitle}` : ''),
+    author: involvedAccounts[0]?.replace('@', '') || 'Discussion',
+    handle: involvedAccounts[0]?.replace('@', '') || 'discussion',
+  };
 
   // Close on escape key
   useEffect(() => {
@@ -607,12 +628,32 @@ export function InsightModal({
             </div>
           )}
 
+          {/* Reply Girl Button */}
+          <div className="mt-6">
+            <button
+              onClick={() => setShowReplyGirl(true)}
+              className="w-full py-3 rounded-xl text-white font-medium transition-all flex items-center justify-center gap-2 hover:opacity-90"
+              style={{ backgroundColor: BRAND_RED }}
+            >
+              <ReplyIcon />
+              Generate Reply with 3 AIs
+            </button>
+          </div>
+
           {/* Footer */}
           <div className="mt-6 pt-4 border-t border-gray-100 text-xs text-gray-400 text-center">
             Scanned {scannedAt ? new Date(scannedAt).toLocaleString() : 'recently'}
           </div>
         </div>
       </div>
+
+      {/* Reply Girl Modal */}
+      <ReplyGirlModal
+        isOpen={showReplyGirl}
+        onClose={() => setShowReplyGirl(false)}
+        originalPost={replyGirlPost}
+        insightContext={summary + (whyThisMatters ? ` Why it matters: ${whyThisMatters}` : '')}
+      />
     </div>
   );
 }
