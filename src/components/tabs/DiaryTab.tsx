@@ -676,86 +676,84 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
   const currentStatusStyle = STATUS_STYLES[currentStatus];
 
   return (
-    <div className="h-full flex flex-col -m-6">
-      {/* Full-width Split View - Notion Style */}
-      <div className="flex-1 flex min-h-0">
-        {/* LEFT: Writing Area - 50% */}
-        <div className="w-1/2 flex flex-col bg-white border-r border-gray-200">
-          {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleBack}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <ChevronLeft className="w-5 h-5 text-gray-600" />
-              </button>
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900">
-                  {selectedEntry ? getEpisodeTitle(selectedEntry) : 'New Episode'}
-                </h2>
-                <p className="text-xs text-gray-500">Click back to return to episode list</p>
-              </div>
-            </div>
-            <span
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium"
-              style={{ backgroundColor: currentStatusStyle.bg, color: currentStatusStyle.text }}
+    <div className="fixed inset-0 left-32 flex bg-white z-30">
+      {/* LEFT: Writing Area - 50% */}
+      <div className="w-1/2 flex flex-col bg-white border-r border-gray-200">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleBack}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
-              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: currentStatusStyle.text }}></span>
-              {currentStatusStyle.label}
-            </span>
-          </div>
-
-          {/* Type Tabs */}
-          <div className="flex items-center gap-1 px-6 py-3 border-b border-gray-100 bg-gray-50">
-            {CONTENT_TYPES.map(type => (
-              <button
-                key={type.id}
-                onClick={() => setEditType(type.id)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  editType === type.id
-                    ? 'bg-gray-900 text-white'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                {type.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Editor - Full Height */}
-          <div className="flex-1 p-6 overflow-auto">
-            <textarea
-              value={editContent}
-              onChange={(e) => setEditContent(e.target.value)}
-              onBlur={handleSave}
-              placeholder="Start writing your script..."
-              className="w-full h-full min-h-[400px] resize-none bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none font-mono text-sm leading-relaxed"
-            />
-          </div>
-
-          {/* Footer */}
-          <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
-            <span className="text-sm text-gray-500">
-              {editContent.length} characters
-            </span>
-            <div className="flex items-center gap-3">
-              {lastSaved && (
-                <span className="text-sm text-gray-400">
-                  Saved {formatDate(lastSaved)}
-                </span>
-              )}
-              <button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="px-4 py-2 text-sm font-medium rounded-lg text-white transition-colors hover:opacity-90 disabled:opacity-50"
-                style={{ backgroundColor: BRAND_RED }}
-              >
-                {isSaving ? 'Saving...' : 'Save'}
-              </button>
+              <ChevronLeft className="w-5 h-5 text-gray-600" />
+            </button>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">
+                {selectedEntry ? getEpisodeTitle(selectedEntry) : 'New Episode'}
+              </h2>
+              <p className="text-xs text-gray-500">Click back to return to episode list</p>
             </div>
+          </div>
+          <span
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium"
+            style={{ backgroundColor: currentStatusStyle.bg, color: currentStatusStyle.text }}
+          >
+            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: currentStatusStyle.text }}></span>
+            {currentStatusStyle.label}
+          </span>
+        </div>
+
+        {/* Type Tabs */}
+        <div className="flex items-center gap-1 px-6 py-3 border-b border-gray-100 bg-gray-50">
+          {CONTENT_TYPES.map(type => (
+            <button
+              key={type.id}
+              onClick={() => setEditType(type.id)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                editType === type.id
+                  ? 'bg-gray-900 text-white'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              {type.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Editor - Full Height */}
+        <div className="flex-1 p-6 overflow-auto">
+          <textarea
+            value={editContent}
+            onChange={(e) => setEditContent(e.target.value)}
+            onBlur={handleSave}
+            placeholder="Start writing your script..."
+            className="w-full h-full min-h-[400px] resize-none bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none font-mono text-sm leading-relaxed"
+          />
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
+          <span className="text-sm text-gray-500">
+            {editContent.length} characters
+          </span>
+          <div className="flex items-center gap-3">
+            {lastSaved && (
+              <span className="text-sm text-gray-400">
+                Saved {formatDate(lastSaved)}
+              </span>
+            )}
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="px-4 py-2 text-sm font-medium rounded-lg text-white transition-colors hover:opacity-90 disabled:opacity-50"
+              style={{ backgroundColor: BRAND_RED }}
+            >
+              {isSaving ? 'Saving...' : 'Save'}
+            </button>
           </div>
         </div>
+      </div>
 
         {/* RIGHT: Creator Voice & Generation Area - 50% */}
         <div className="w-1/2 flex flex-col bg-gray-100">
@@ -1034,7 +1032,6 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
             )}
           </div>
         </div>
-      </div>
 
       {/* Creator Tweet Selector Modal */}
       <CreatorTweetSelectorModal
