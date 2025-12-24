@@ -72,6 +72,36 @@ interface AIRemixResult {
   error?: string;
 }
 
+// Enhancement types
+type EnhancementDimension = 'curiosity-gap' | 'prediction-violation' | 'habituation-bypass';
+
+interface HookSuggestion {
+  hook: string;
+  technique: string;
+  whyItWorks: string;
+}
+
+interface ReframeSuggestion {
+  reframe: string;
+  twist: string;
+  emotionalArc: string;
+}
+
+interface BypassSuggestion {
+  version: string;
+  technique: string;
+  patternBreak: string;
+}
+
+interface EnhanceResult {
+  ai: 'grok' | 'claude' | 'gpt';
+  success: boolean;
+  hooks?: HookSuggestion[];
+  reframes?: ReframeSuggestion[];
+  bypasses?: BypassSuggestion[];
+  error?: string;
+}
+
 // Creator Tweet Selector Modal
 function CreatorTweetSelectorModal({
   isOpen,
@@ -310,6 +340,11 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
   // Imported Structure state (from Pulse Outliers)
   const [importedStructure, setImportedStructure] = useState<ImportedStructure | null>(null);
 
+  // Enhancement modal state
+  const [activeEnhancement, setActiveEnhancement] = useState<EnhancementDimension | null>(null);
+  const [enhanceResults, setEnhanceResults] = useState<EnhanceResult[]>([]);
+  const [isEnhancing, setIsEnhancing] = useState(false);
+
   // Load entries
   const loadEntries = useCallback(async () => {
     try {
@@ -517,6 +552,38 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
     navigator.clipboard.writeText(text);
     setCopiedIndex(index);
     setTimeout(() => setCopiedIndex(null), 2000);
+  };
+
+  // Enhancement handler
+  const handleEnhance = async (dimension: EnhancementDimension) => {
+    if (!editContent || editContent.length < 20) return;
+
+    setActiveEnhancement(dimension);
+    setIsEnhancing(true);
+    setEnhanceResults([]);
+
+    try {
+      const response = await fetch('/api/diary/enhance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userContent: editContent,
+          dimension,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success && result.results) {
+        setEnhanceResults(result.results);
+      } else {
+        console.error('Enhancement failed:', result.error);
+      }
+    } catch (error) {
+      console.error('Failed to enhance:', error);
+    } finally {
+      setIsEnhancing(false);
+    }
   };
 
   // Get AI icon and color
@@ -1057,39 +1124,72 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
             )}
           </div>
 
-          {/* Generate Button */}
-          <div className="p-6 border-t border-gray-200 bg-white">
-            <button
-              onClick={handleGenerate}
-              disabled={!editContent || editContent.length < 20 || isGenerating}
-              className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-medium text-white text-base transition-colors hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ backgroundColor: selectedCreatorId ? CREATORS.find(c => c.id === selectedCreatorId)?.color : BRAND_RED }}
-            >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Generating with 3 AIs...
-                </>
-              ) : selectedCreatorId ? (
-                <>
-                  <Sparkles className="w-5 h-5" />
-                  {importedStructure
-                    ? `Generate with ${CREATORS.find(c => c.id === selectedCreatorId)?.name} + Structure`
-                    : `Generate (${CREATORS.find(c => c.id === selectedCreatorId)?.name} Style)`
-                  }
-                </>
-              ) : (
-                <>
-                  <Lightbulb className="w-5 h-5" />
-                  Select Creator First
-                </>
-              )}
-            </button>
-            {!selectedCreatorId && editContent.length >= 20 && (
-              <p className="text-sm text-center text-gray-500 mt-3">
-                Pick a creator style to generate suggestions
-                {importedStructure && ' (structure from Pulse will be applied)'}
-              </p>
+          {/* Enhancement Buttons - 3 Psychological Dimensions */}
+          <div className="p-4 border-t border-gray-200 bg-white">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+              Enhance Your Content
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              {/* Curiosity Gap */}
+              <button
+                onClick={() => handleEnhance('curiosity-gap')}
+                disabled={!editContent || editContent.length < 20 || isEnhancing}
+                className="flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 border-gray-200 hover:border-purple-300 hover:bg-purple-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
+              >
+                <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center group-hover:bg-purple-200 transition-colors">
+                  <Lightbulb className="w-4 h-4 text-purple-600" />
+                </div>
+                <span className="text-xs font-semibold text-gray-700">Hooks</span>
+                <span className="text-[10px] text-gray-500">5 per AI</span>
+              </button>
+
+              {/* Prediction Violation */}
+              <button
+                onClick={() => handleEnhance('prediction-violation')}
+                disabled={!editContent || editContent.length < 20 || isEnhancing}
+                className="flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 border-gray-200 hover:border-orange-300 hover:bg-orange-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
+              >
+                <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center group-hover:bg-orange-200 transition-colors">
+                  <Zap className="w-4 h-4 text-orange-600" />
+                </div>
+                <span className="text-xs font-semibold text-gray-700">Reframe</span>
+                <span className="text-[10px] text-gray-500">Twist it</span>
+              </button>
+
+              {/* Habituation Bypass */}
+              <button
+                onClick={() => handleEnhance('habituation-bypass')}
+                disabled={!editContent || editContent.length < 20 || isEnhancing}
+                className="flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 border-gray-200 hover:border-green-300 hover:bg-green-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
+              >
+                <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center group-hover:bg-green-200 transition-colors">
+                  <Sparkles className="w-4 h-4 text-green-600" />
+                </div>
+                <span className="text-xs font-semibold text-gray-700">Fresh</span>
+                <span className="text-[10px] text-gray-500">New words</span>
+              </button>
+            </div>
+
+            {/* Original Generate Button (smaller) */}
+            {selectedCreatorId && (
+              <button
+                onClick={handleGenerate}
+                disabled={!editContent || editContent.length < 20 || isGenerating}
+                className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-white text-sm transition-colors hover:opacity-90 disabled:opacity-50"
+                style={{ backgroundColor: CREATORS.find(c => c.id === selectedCreatorId)?.color }}
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    Full Generate ({CREATORS.find(c => c.id === selectedCreatorId)?.name})
+                  </>
+                )}
+              </button>
             )}
           </div>
         </div>
@@ -1102,6 +1202,121 @@ export default function DiaryTab({ onGeneratePost }: DiaryTabProps) {
         selectedCreatorId={selectedCreatorId}
         selectedTweetId={selectedTweetId}
       />
+
+      {/* Enhancement Results Modal */}
+      {activeEnhancement && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setActiveEnhancement(null)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  {activeEnhancement === 'curiosity-gap' && '🎯 Curiosity Gap Hooks'}
+                  {activeEnhancement === 'prediction-violation' && '⚡ Story Reframes'}
+                  {activeEnhancement === 'habituation-bypass' && '✨ Fresh Versions'}
+                </h2>
+                <p className="text-sm text-gray-500">
+                  {activeEnhancement === 'curiosity-gap' && '5 hook variations from each AI'}
+                  {activeEnhancement === 'prediction-violation' && 'Twist your story with unexpected endings'}
+                  {activeEnhancement === 'habituation-bypass' && 'Pattern-breaking rewrites'}
+                </p>
+              </div>
+              <button
+                onClick={() => setActiveEnhancement(null)}
+                className="p-2 hover:bg-gray-100 rounded-lg"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {isEnhancing ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-gray-400 mb-4" />
+                  <p className="text-gray-600">Generating from all 3 AIs...</p>
+                </div>
+              ) : enhanceResults.length > 0 ? (
+                <div className="grid grid-cols-3 gap-4">
+                  {enhanceResults.map((result, idx) => {
+                    const aiColors = { grok: '#C41E3A', claude: '#8B5CF6', gpt: '#10B981' };
+                    const aiNames = { grok: 'Grok', claude: 'Claude', gpt: 'GPT-4o' };
+
+                    return (
+                      <div key={idx} className="flex flex-col">
+                        {/* AI Header */}
+                        <div
+                          className="px-3 py-2 rounded-t-xl text-white text-sm font-semibold"
+                          style={{ backgroundColor: aiColors[result.ai] }}
+                        >
+                          {aiNames[result.ai]}
+                        </div>
+
+                        {/* Results */}
+                        <div className="flex-1 border-2 border-t-0 rounded-b-xl p-3 space-y-2" style={{ borderColor: aiColors[result.ai] + '30' }}>
+                          {result.success ? (
+                            <>
+                              {/* Hooks */}
+                              {activeEnhancement === 'curiosity-gap' && result.hooks?.map((hook, hIdx) => (
+                                <div
+                                  key={hIdx}
+                                  onClick={() => navigator.clipboard.writeText(hook.hook)}
+                                  className="p-2 rounded-lg bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors group"
+                                >
+                                  <p className="text-sm font-medium text-gray-900">&ldquo;{hook.hook}&rdquo;</p>
+                                  <div className="flex items-center justify-between mt-1">
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700">{hook.technique}</span>
+                                    <span className="text-[10px] text-gray-400 opacity-0 group-hover:opacity-100">Click to copy</span>
+                                  </div>
+                                </div>
+                              ))}
+
+                              {/* Reframes */}
+                              {activeEnhancement === 'prediction-violation' && result.reframes?.map((reframe, rIdx) => (
+                                <div
+                                  key={rIdx}
+                                  onClick={() => navigator.clipboard.writeText(reframe.reframe)}
+                                  className="p-2 rounded-lg bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors group"
+                                >
+                                  <p className="text-sm text-gray-900">{reframe.reframe}</p>
+                                  <div className="flex items-center justify-between mt-2">
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-100 text-orange-700">{reframe.twist}</span>
+                                    <span className="text-[10px] text-gray-400 opacity-0 group-hover:opacity-100">Click to copy</span>
+                                  </div>
+                                </div>
+                              ))}
+
+                              {/* Bypasses */}
+                              {activeEnhancement === 'habituation-bypass' && result.bypasses?.map((bypass, bIdx) => (
+                                <div
+                                  key={bIdx}
+                                  onClick={() => navigator.clipboard.writeText(bypass.version)}
+                                  className="p-2 rounded-lg bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors group"
+                                >
+                                  <p className="text-sm text-gray-900">{bypass.version}</p>
+                                  <div className="flex items-center justify-between mt-2">
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-700">{bypass.technique}</span>
+                                    <span className="text-[10px] text-gray-400 opacity-0 group-hover:opacity-100">Click to copy</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </>
+                          ) : (
+                            <p className="text-sm text-red-500">{result.error || 'Failed'}</p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-center text-gray-500">No results yet</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
